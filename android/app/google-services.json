@@ -1,0 +1,936 @@
+{
+  "project_info": {
+    "project_number": "749013094150",
+    "firebase_url": "https://rameza-project.firebaseio.com",
+    "project_id": "rameza-project",
+    "storage_bucket": "rameza-project.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:d0ad4d4f090da138",
+        "android_client_info": {
+          "package_name": "com.cakrawala.kristaulia.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-hcud9bj31q4v5g5los3pcpb8pt9fkjlk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cakrawala.kristaulia.app",
+            "certificate_hash": "dc53c9ca60d927ffb7793c36ba7d71f11d79111b"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:6014cc5426b6cc82",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.asttracking.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-4a48btmt5cddbrteqt2ho05v6ptejlsa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.asttracking.app",
+            "certificate_hash": "2c8263a5a08357df66b154e6f2b70bc8131cb495"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:9beaf2e4a58aca2c",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.demopower.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-drsrl1grhcm6818a4cmnjpr8duo9ntm2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.demopower.app",
+            "certificate_hash": "bc48ee4528595d493ff74a753e01d808d7e399f1"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:0d5e5305c90f9e1f",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.dinos.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-b9lgffjdcunor4bm3o8j82f0nt20duuq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.dinos.app",
+            "certificate_hash": "f87abaef2cb9f11de033a11fc6ad553b3768e8f1"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:29c44c8b053c1033",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.fma.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-09dbui0cmi5diu4uefq3fle2tkmdd37t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.fma.app",
+            "certificate_hash": "43983292419f800251b733693fd61d2e32e59655"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:dcdb714bcc649979",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.fma.apps"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-a0da74alpe7t2305pf2k6je9rtup67ud.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.fma.apps",
+            "certificate_hash": "c3628eb8ef844ae5bbe740442786381d31dd2a36"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:fc4a6f289d7dda11",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.greenfields.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-eetf4s1f39hlohvr8rmiemhj8tuh23kp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.greenfields.app",
+            "certificate_hash": "3b05dbffd4361a8ff5c97006bebd033b0efaa176"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:d66fa83c0a832460",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.impact.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-0hicd3moi5vk6pn5n8ot4i58i439e2a1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.impact.app",
+            "certificate_hash": "de25b15cff19d2a22ff117b5fd66a5f4da244511"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:dd2bf849c5a261ed",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.koala.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-bg3h7an4899bjnlmgcds8ttsm5bk0l5g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.koala.app",
+            "certificate_hash": "43983292419f800251b733693fd61d2e32e59655"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:82d7de99632f7170",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.lotte.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-nmrqmqka8vtgnbanenmoan5m3hrduusj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.lotte.app",
+            "certificate_hash": "c47af469bf31e24023eb10f1b3e34015f4942e06"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:1949ca36d635edc8",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.optimus.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-l45hjjmkr14ejr6r90fkb1nn9l4n62f4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.optimus.app",
+            "certificate_hash": "96addc1abb5d3594ec21ac140acd1e125a21a8e8"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:4dd7f08829b7cc9a",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.promise.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-j0s5rvu6amm7f776oln2phps9ihtu28l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.promise.app",
+            "certificate_hash": "a0ed3af882433b48ddcfae0b3d2535d84bd1ed63"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:9cf47cb20be9abf3",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.star.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-c1521n01v76a6hdlnnv75iqc4nmp8sj5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.star.app",
+            "certificate_hash": "a24199afe329d962757b17a7cb92bd807b338320"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:eabf71488f2c46bd",
+        "android_client_info": {
+          "package_name": "com.digitalvisitama.terasys.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-crteqi2pkjc8rgjovbadn8ou68nchogn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.digitalvisitama.terasys.app",
+            "certificate_hash": "33ad581f993a9345c3ad8ecbbfcef64cccd3dbf5"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:c1e0cb9a32e2cbce",
+        "android_client_info": {
+          "package_name": "com.divgitalvisitama.distributor.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-c47rhh6doqb8sghtkpajgs942rc7sv5p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.divgitalvisitama.distributor.app",
+            "certificate_hash": "c0026092d296ecea33223d014eb505a0daaed290"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:4ab93b952ce096a2",
+        "android_client_info": {
+          "package_name": "com.divgitalvisitama.distributor.app.debug"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-a6vbot7qjpu1bdegahcb73ndn6pngg0b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.divgitalvisitama.distributor.app.debug",
+            "certificate_hash": "c0026092d296ecea33223d014eb505a0daaed290"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:5753a21bc4235ccd",
+        "android_client_info": {
+          "package_name": "com.divgitalvisitama.optimusforsale.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-q4j7pcu2fgih6fkkomc3sgdajnua6rpk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.divgitalvisitama.optimusforsale.app",
+            "certificate_hash": "0cc46881e6a7b04d0eee3fb168af6ee628e9713a"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:749c6f156193aab5",
+        "android_client_info": {
+          "package_name": "com.divgitalvisitama.starsales.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-1bm3m6egnd4ufakreruh0sektt8asmov.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.divgitalvisitama.starsales.app",
+            "certificate_hash": "c38cc7da2fc3b15a120b88c94d89c9b2961e2747"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:09546560b4505797",
+        "android_client_info": {
+          "package_name": "com.google.firebase.samples.apps.mlkit"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-9rnjpdh01c3n88sl9rjs70pd06n72lrr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.google.firebase.samples.apps.mlkit",
+            "certificate_hash": "6903f1b348e6a772ff2ef88d543ac67860641694"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:e36fed372ff1f3dc",
+        "android_client_info": {
+          "package_name": "com.rameza.mars"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-v215d0vr7aa4h4piialumigp9k49ni91.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rameza.mars",
+            "certificate_hash": "0c67a9e0a4d5ed8c3729aa5ac88abde0342fa214"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:be9c2cef9086d9d2",
+        "android_client_info": {
+          "package_name": "com.rameza.mars.mark2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-e9eiq7rsk6fc09lnie480nf1um07ba8l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rameza.mars.mark2",
+            "certificate_hash": "0c67a9e0a4d5ed8c3729aa5ac88abde0342fa214"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:a74badc6c952bb9c",
+        "android_client_info": {
+          "package_name": "com.rameza.mars2.mkb"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-2rlbkgr158c3pt1mu64s1ia2sh8tf88f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rameza.mars2.mkb",
+            "certificate_hash": "0c67a9e0a4d5ed8c3729aa5ac88abde0342fa214"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:76f0a04627ec7c88",
+        "android_client_info": {
+          "package_name": "com.rameza.semar"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-fafc6dd4lkn1dmqg7ssj020vjm2vrrj9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rameza.semar",
+            "certificate_hash": "0c67a9e0a4d5ed8c3729aa5ac88abde0342fa214"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:aae524add72351f0",
+        "android_client_info": {
+          "package_name": "com.rameza.sinarmas.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-0sk53e5l4rei5vd3ldgtf9opm5o78rgd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rameza.sinarmas.app",
+            "certificate_hash": "e2ba26b6e6ccd0d471977b86db8cb4c5ab12a92c"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749013094150:android:33c4645bee86d333",
+        "android_client_info": {
+          "package_name": "com.rameza.threesixty.mkb"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "749013094150-goest5hjnur83lhe5sc8tnth2l6qkoa9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rameza.threesixty.mkb",
+            "certificate_hash": "6aab5b0c0aa181a1157e69afa2590b2871731547"
+          }
+        },
+        {
+          "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCERbXi6zONUZuDwO1ewahx7hpVKJ4EjVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749013094150-ppmg1fgr4d9ep0oe3ddk230huh99jf70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
