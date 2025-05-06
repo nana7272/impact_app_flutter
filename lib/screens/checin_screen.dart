@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:impact_app/screens/documentasi_screen.dart';
+import 'package:impact_app/api/api_services.dart';
+import 'package:impact_app/models/store_model.dart';
+import 'package:impact_app/utils/location_utils.dart';
+import 'package:impact_app/themes/app_colors.dart';
 
 class CheckinMapScreen extends StatefulWidget {
   const CheckinMapScreen({super.key});
@@ -15,12 +19,10 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
   Position? _currentPosition;
   double _accuracy = 0;
   final Set<Marker> _markers = {};
-
-  final List<Map<String, dynamic>> stores = [
-    {"name": "TK SRI BUANA", "lat": -6.4005, "lng": 106.9650, "distance": 100},
-    {"name": "TK SRI BUANA", "lat": -6.4020, "lng": 106.9670, "distance": 250},
-    {"name": "TK SRI BUANA", "lat": -6.4050, "lng": 106.9700, "distance": 175},
-  ];
+  List<Store> _nearbyStores = [];
+  bool _isLoading = true;
+  
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -29,97 +31,151 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      await Geolocator.openLocationSettings();
-
+    setState(() => _isLoading = true);
+    
+    Position? position = await LocationUtils.getCurrentLocation();
+    
+    if (position != null) {
+      setState(() {
+        _currentPosition = position;
+        _accuracy = position.accuracy;
+      });
+      
+      // Move camera to current position
+      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
+        LatLng(position.latitude, position.longitude),
+        16,
+      ));
+      
+      // Fetch nearby stores
+      await _fetchNearbyStores();
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Layanan lokasi tidak aktif.')),
+        const SnackBar(content: Text('Tidak dapat mengakses lokasi Anda')),
       );
-      return;
     }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Izin lokasi dibutuhkan untuk fitur ini.')),
-        );
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
+    
+    setState(() => _isLoading = false);
+  }
+  
+  Future<void> _fetchNearbyStores() async {
+    if (_currentPosition == null) return;
+    
+    try {
+      final stores = await _apiService.getStores();
+      
+      // Calculate distance for each store
+      _nearbyStores = stores.map((store) {
+        if (store.latitude != null && store.longitude != null) {
+          double distance = LocationUtils.calculateDistance(
+            _currentPosition!.latitude,
+            _currentPosition!.longitude,
+            store.latitude!,
+            store.longitude!,
+          );
+          
+          return Store(
+            id: store.id,
+            code: store.code,
+            name: store.name,
+            address: store.address,
+            description: store.description,
+            distributor: store.distributor,
+            segment: store.segment,
+            province: store.province,
+            area: store.area,
+            district: store.district,
+            subDistrict: store.subDistrict,
+            account: store.account,
+            type: store.type,
+            image: store.image,
+            latitude: store.latitude,
+            longitude: store.longitude,
+            distance: distance.toInt(),
+          );
+        }
+        return store;
+      }).toList();
+      
+      // Sort stores by distance
+      _nearbyStores.sort((a, b) => (a.distance ?? 9999).compareTo(b.distance ?? 9999));
+      
+      _setMarkers();
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Izin lokasi ditolak permanen. Buka pengaturan aplikasi.')),
+        SnackBar(content: Text('Gagal mengambil data toko: $e')),
       );
-      return;
     }
-
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    setState(() {
-      _currentPosition = position;
-      _accuracy = position.accuracy;
-    });
-
-    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
-      LatLng(position.latitude, position.longitude),
-      16,
-    ));
-
-    _setMarkers();
   }
 
   void _setMarkers() {
     _markers.clear();
-
-    for (var store in stores) {
-
-      final int distance = store['distance'];
-      final markerColor = distance <= 100 ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed;
-
+    
+    // Add marker for current position
+    if (_currentPosition != null) {
       _markers.add(
         Marker(
-          markerId: MarkerId(store['name']),
-          position: LatLng(store['lat'], store['lng']),
-          infoWindow: InfoWindow(title: store['name']),
-          icon: BitmapDescriptor.defaultMarkerWithHue(markerColor),
-          onTap: () => _showStoreDialog(context, store['name']),
+          markerId: const MarkerId('current_position'),
+          position: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+          infoWindow: const InfoWindow(title: 'Posisi Anda'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         ),
       );
+    }
+    
+    // Add markers for stores
+    for (var store in _nearbyStores) {
+      if (store.latitude != null && store.longitude != null) {
+        final int distance = store.distance ?? 999;
+        final markerColor = distance <= 100 ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed;
+
+        _markers.add(
+          Marker(
+            markerId: MarkerId(store.id ?? ''),
+            position: LatLng(store.latitude!, store.longitude!),
+            infoWindow: InfoWindow(title: store.name),
+            icon: BitmapDescriptor.defaultMarkerWithHue(markerColor),
+            onTap: () => _showStoreDialog(context, store),
+          ),
+        );
+      }
     }
 
     setState(() {});
   }
 
-  void _showStoreDialog(BuildContext context, String storeName) {
+  void _showStoreDialog(BuildContext context, Store store) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.store, color: Colors.blue),
-            SizedBox(height: 8),
-            Text(storeName, style: TextStyle(fontWeight: FontWeight.bold)),
-            Text("GT"),
-            Text("Jl. Villa Makmur 2, Cileungsi, Jawa Barat - BOGOR"),
+            const Icon(Icons.store, color: AppColors.primary),
+            const SizedBox(height: 8),
+            Text(store.name ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(store.type ?? ''),
+            Text(store.address ?? ''),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Edit store"),
+            child: const Text("Edit store"),
           ),
           ElevatedButton(
             onPressed: () {
+              Navigator.pop(context); // Close dialog
+              
+              // Navigate to documentation screen with store data
               Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (BuildContext context) => new DocumentasiScreen()));
+                context,
+                MaterialPageRoute(
+                  builder: (BuildContext context) => DocumentasiScreen(store: store),
+                ),
+              );
             },
-            child: Text("Check in"),
+            child: const Text("Check in"),
           ),
         ],
       ),
@@ -130,22 +186,27 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Check in"),
-        backgroundColor: Colors.grey[300],
+        title: const Text("Check in"),
+        backgroundColor: AppColors.secondary,
       ),
       body: Stack(
         children: [
-          _currentPosition == null
-              ? Center(child: CircularProgressIndicator())
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
               : GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-                    zoom: 16,
-                  ),
+                  initialCameraPosition: _currentPosition != null
+                      ? CameraPosition(
+                          target: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                          zoom: 16,
+                        )
+                      : const CameraPosition(
+                          target: LatLng(-6.2088, 106.8456), // Default to Jakarta
+                          zoom: 10,
+                        ),
                   myLocationEnabled: true,
+                  myLocationButtonEnabled: true,
                   onMapCreated: (controller) {
                     _mapController = controller;
-                    _setMarkers();
                   },
                   markers: _markers,
                 ),
@@ -155,32 +216,53 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
             right: 0,
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("Accuration: ${_accuracy.toStringAsFixed(2)} m (MINIMUM: 100 m)"),
-                  SizedBox(height: 12),
-                  ...stores.map((store) {
+                  Text("Akurasi: ${_accuracy.toStringAsFixed(2)} m (MINIMUM: 100 m)"),
+                  const SizedBox(height: 12),
+                  // List of nearby stores
+                  ..._nearbyStores.take(3).map((store) {
+                    final bool isInRange = (store.distance ?? 999) <= 100;
                     return Card(
-                      color: store["distance"] <= 100 ? Colors.green : Colors.redAccent,
+                      color: isInRange ? AppColors.success : AppColors.error,
                       child: ListTile(
-                        leading: Icon(Icons.store),
-                        title: Text(store["name"], style: TextStyle(color: Colors.white)),
-                        trailing: Text("${store["distance"]} m", style: TextStyle(color: Colors.white)),
-                        onTap: () => _showStoreDialog(context, store["name"]),
+                        leading: const Icon(Icons.store, color: Colors.white),
+                        title: Text(
+                          store.name ?? '',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        trailing: Text(
+                          "${store.distance} m",
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        onTap: () => _showStoreDialog(context, store),
                       ),
                     );
                   }).toList(),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      ElevatedButton(onPressed: () { Navigator.pushNamed(context, '/addstore'); }, child: Text("Add Store")),
-                      ElevatedButton(onPressed: _getCurrentLocation, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: Text("Reset")),
-                      ElevatedButton(onPressed: _getCurrentLocation, child: Text("Refresh")),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/addstore');
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text("Add Store"),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: _getCurrentLocation,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text("Refresh"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                        ),
+                      ),
                     ],
                   ),
                 ],

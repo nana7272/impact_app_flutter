@@ -30,6 +30,7 @@ class ProductListScreen extends StatelessWidget {
           children: [
            SearchBarWidget(
               controller: TextEditingController(),
+              hintText: "Cari produk...",
               onScanPressed: () {
                 // Aksi ketika ikon scan ditekan
               },

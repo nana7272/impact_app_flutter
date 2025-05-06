@@ -1,49 +1,60 @@
 import 'package:flutter/material.dart';
+import '../themes/app_colors.dart';
 
 class SearchBarWidget extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
+  final Function(String)? onChanged;
   final VoidCallback? onScanPressed;
 
   const SearchBarWidget({
-    super.key,
+    Key? key,
     required this.controller,
-    this.hintText = "Search here",
+    required this.hintText,
+    this.onChanged,
     this.onScanPressed,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: 50,
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.lightBlue, width: 2),
-        borderRadius: BorderRadius.circular(40),
         color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.blue[700],
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.search, color: Colors.white, size: 20),
+          // Search Icon
+          const Padding(
+            padding: EdgeInsets.only(left: 15),
+            child: Icon(Icons.search, color: AppColors.textSecondary),
           ),
-          SizedBox(width: 8),
+          // TextField
           Expanded(
             child: TextField(
               controller: controller,
+              onChanged: onChanged,
               decoration: InputDecoration(
                 hintText: hintText,
+                hintStyle: const TextStyle(color: AppColors.textSecondary),
                 border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 15),
               ),
             ),
           ),
+          // Scan Button
           IconButton(
-            icon: Icon(Icons.qr_code_scanner, color: Colors.grey),
-            onPressed: onScanPressed ?? () {},
+            icon: const Icon(Icons.qr_code_scanner, color: AppColors.textSecondary),
+            onPressed: onScanPressed,
           ),
         ],
       ),

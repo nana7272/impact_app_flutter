@@ -1,10 +1,16 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:impact_app/api/api_constants.dart';
+import 'package:impact_app/api/api_services.dart';
+import 'package:impact_app/models/store_model.dart';
+import 'package:impact_app/themes/app_colors.dart';
+import 'package:impact_app/utils/connectivity_utils.dart';
 
 class DocumentasiScreen extends StatefulWidget {
-  const DocumentasiScreen({super.key});
+  final Store store;
+  
+  const DocumentasiScreen({super.key, required this.store});
 
   @override
   State<DocumentasiScreen> createState() => _DocumentasiScreenState();
@@ -15,6 +21,9 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
   File? _image2;
   final TextEditingController _desc1 = TextEditingController();
   final TextEditingController _desc2 = TextEditingController();
+  bool _isLoading = false;
+  
+  final ApiService _apiService = ApiService();
 
   Future<void> _pickImage(int index) async {
     final picked = await ImagePicker().pickImage(source: ImageSource.camera);
@@ -29,26 +38,117 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
     }
   }
 
+  Future<void> _submitData(bool isOnline) async {
+    if (_image1 == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Harap ambil gambar pertama')),
+      );
+      return;
+    }
+    
+    setState(() => _isLoading = true);
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    
+    try {
+      if (isOnline) {
+        // Check internet connection
+        bool isConnected = await ConnectivityUtils.checkInternetConnection();
+        
+        if (!isConnected) {
+          // Close loading dialog
+          Navigator.pop(context);
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tidak ada koneksi internet')),
+          );
+          
+          setState(() => _isLoading = false);
+          return;
+        }
+        
+        // Submit data to server
+        List<File> images = [];
+        List<String> descriptions = [];
+        
+        if (_image1 != null) {
+          images.add(_image1!);
+          descriptions.add(_desc1.text);
+        }
+        
+        if (_image2 != null) {
+          images.add(_image2!);
+          descriptions.add(_desc2.text);
+        }
+        
+        await _apiService.checkin(
+          widget.store.id!,
+          widget.store.latitude!,
+          widget.store.longitude!,
+          images,
+          descriptions,
+        );
+        
+        // Close loading dialog
+        Navigator.pop(context);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data berhasil dikirim ke server')),
+        );
+        
+        // Navigate back to previous screen after success
+        Navigator.pop(context);
+      } else {
+        // Save data locally
+        // Here you would implement local storage using SQLite or Hive
+        
+        // Close loading dialog
+        Navigator.pop(context);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data disimpan secara lokal')),
+        );
+        
+        // Navigate back to previous screen after success
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      // Close loading dialog
+      Navigator.pop(context);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengirim data: $e')),
+      );
+    }
+    
+    setState(() => _isLoading = false);
+  }
+
   void _showKirimDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Kirim Data'),
-        content: Text('Kirim data menggunakan metode?'),
+        title: const Text('Kirim Data'),
+        content: const Text('Kirim data menggunakan metode?'),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Data dikirim offline")));
+              _submitData(false); // Local
             },
-            child: Text('Offline (Local)'),
+            child: const Text('Offline (Local)'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Data dikirim online")));
+              _submitData(true); // Online
             },
-            child: Text('Online (Server)'),
+            child: const Text('Online (Server)'),
           ),
         ],
       ),
@@ -63,7 +163,7 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
         backgroundColor: Colors.grey[200],
         child: image != null
             ? ClipOval(child: Image.file(image, width: 80, height: 80, fit: BoxFit.cover))
-            : Icon(Icons.camera_alt, size: 32, color: Colors.grey),
+            : const Icon(Icons.camera_alt, size: 32, color: Colors.grey),
       ),
     );
   }
@@ -72,60 +172,81 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Check in"),
-        backgroundColor: Colors.grey[600],
+        title: const Text("Check in"),
+        backgroundColor: AppColors.secondary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
+            // Store info card
             Container(
               height: 160,
               width: double.infinity,
               decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/sample_toko.jpg'),
-                  fit: BoxFit.cover,
-                ),
+                image: widget.store.image != null
+                  ? DecorationImage(
+                      image: NetworkImage(ApiConstants.baseApiUrl + '/' + widget.store.image!),
+                      fit: BoxFit.cover,
+                    )
+                  : DecorationImage(
+                      image: AssetImage('assets/images/store_placeholder.jpg'),
+                      fit: BoxFit.cover,
+                    ),
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.bottomLeft,
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('TK RINDU JAYA', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text('GT', style: TextStyle(color: Colors.white)),
-                  Text('Jawa Barat - BOGOR', style: TextStyle(color: Colors.white)),
+                children: [
+                  Text(
+                    widget.store.name ?? 'Nama Toko',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  Text(
+                    widget.store.type ?? 'Tipe',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  Text(
+                    '${widget.store.province ?? ''} - ${widget.store.area ?? ''}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ],
               ),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
+            
+            // Image 1
             _buildImagePicker(1, _image1),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextField(
               controller: _desc1,
-              decoration: InputDecoration(hintText: 'Desc Gambar 1'),
+              decoration: const InputDecoration(hintText: 'Desc Gambar 1'),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
+            
+            // Image 2
             _buildImagePicker(2, _image2),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextField(
               controller: _desc2,
-              decoration: InputDecoration(hintText: 'Desc Gambar 2'),
+              decoration: const InputDecoration(hintText: 'Desc Gambar 2'),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
+            
+            // Submit button
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: _showKirimDialog,
+                onPressed: _isLoading ? null : _showKirimDialog,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: Text('Kirim Data'),
+                child: const Text('Kirim Data'),
               ),
             )
           ],

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:impact_app/models/sales_print_out_model.dart';
+import 'package:impact_app/screens/sales_print_out_screen.dart';
 
 class SalesScreen extends StatelessWidget {
   const SalesScreen({Key? key}) : super(key: key);
@@ -73,7 +75,15 @@ class SalesScreen extends StatelessWidget {
                   return Column(
                     children: [
                       GestureDetector(
-                      onTap: () { },
+                      onTap: () {
+                         if (menu['title'] == 'Sales Print Out') {
+                           Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (BuildContext context) => SalesPrintOutScreen(storeId: "1",
+        visitId: "1")));
+                         }
+                       },
                       child: Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:impact_app/themes/app_colors.dart';
+import 'package:impact_app/widget/badge_count_widget.dart';
 
 class CustomBottomNavbar extends StatelessWidget {
   final int currentIndex;
@@ -34,19 +36,57 @@ class CustomBottomNavbar extends StatelessWidget {
     );
   }
 
-  Widget _buildTabItem({required IconData icon, required String label, required int index}) {
-    final isSelected = currentIndex == index;
-    final color = isSelected ? Colors.blue : Colors.black87;
-    return GestureDetector(
-      onTap: () => onTabSelected(index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color),
-          Text(label, style: TextStyle(color: color, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-        ],
-      ),
+  // Widget _buildTabItem({required IconData icon, required String label, required int index}) {
+  //   final isSelected = currentIndex == index;
+  //   final color = isSelected ? Colors.blue : Colors.black87;
+  //   return GestureDetector(
+  //     onTap: () => onTabSelected(index),
+  //     child: Column(
+  //       mainAxisSize: MainAxisSize.min,
+  //       mainAxisAlignment: MainAxisAlignment.center,
+  //       children: [
+  //         Icon(icon, color: color),
+  //         Text(label, style: TextStyle(color: color, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+  //       ],
+  //     ),
+  //   );
+  // }
+
+  Widget _buildTabItem({
+  required IconData icon, 
+  required String label, 
+  required int index,
+  int badgeCount = 0,
+}) {
+  final isSelected = currentIndex == index;
+  final color = isSelected ? AppColors.primary : Colors.black87;
+  
+  Widget iconWidget = Icon(icon, color: color);
+  
+  // Add badge for notification icon
+  if (index == 2 && badgeCount > 0) {
+    iconWidget = BadgeCount(
+      count: badgeCount,
+      child: iconWidget,
     );
   }
+  
+  return GestureDetector(
+    onTap: () => onTabSelected(index),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        iconWidget,
+        Text(
+          label, 
+          style: TextStyle(
+            color: color, 
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ],
+    ),
+  );
+}
 }
