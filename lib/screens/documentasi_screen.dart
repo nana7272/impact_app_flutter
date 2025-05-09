@@ -6,6 +6,8 @@ import 'package:impact_app/api/api_services.dart';
 import 'package:impact_app/models/store_model.dart';
 import 'package:impact_app/themes/app_colors.dart';
 import 'package:impact_app/utils/connectivity_utils.dart';
+import 'package:impact_app/utils/logger.dart';
+import 'package:impact_app/utils/session_manager.dart';
 
 class DocumentasiScreen extends StatefulWidget {
   final Store store;
@@ -24,6 +26,8 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
   bool _isLoading = false;
   
   final ApiService _apiService = ApiService();
+  final Logger _logger = Logger();
+  final String _tag = 'DocumentasiScreen';
 
   Future<void> _pickImage(int index) async {
     final picked = await ImagePicker().pickImage(source: ImageSource.camera);
@@ -62,11 +66,31 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
         
         if (!isConnected) {
           // Close loading dialog
-          Navigator.pop(context);
+          if (context.mounted) Navigator.pop(context);
           
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak ada koneksi internet')),
-          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Tidak ada koneksi internet')),
+            );
+          }
+          
+          setState(() => _isLoading = false);
+          return;
+        }
+        
+        // Get user ID to make sure it's included in the request
+        final user = await SessionManager().getCurrentUser();
+        if (user == null || user.id == null) {
+          _logger.e(_tag, 'User data not found');
+          
+          // Close loading dialog
+          if (context.mounted) Navigator.pop(context);
+          
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Data user tidak ditemukan')),
+            );
+          }
           
           setState(() => _isLoading = false);
           return;
@@ -86,44 +110,61 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
           descriptions.add(_desc2.text);
         }
         
-        await _apiService.checkin(
+        // Add user ID to the data
+        final visitData = await _apiService.checkin(
           widget.store.id!,
           widget.store.latitude!,
           widget.store.longitude!,
           images,
           descriptions,
+          userId: user.id, // Explicitly pass the user ID
         );
         
         // Close loading dialog
-        Navigator.pop(context);
+        if (context.mounted) Navigator.pop(context);
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data berhasil dikirim ke server')),
-        );
-        
-        // Navigate back to previous screen after success
-        Navigator.pop(context);
+        if (visitData != null) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Data berhasil dikirim ke server')),
+            );
+            
+            // Navigate back to previous screen after success
+            Navigator.pop(context);
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Gagal mengirim data')),
+            );
+          }
+        }
       } else {
         // Save data locally
         // Here you would implement local storage using SQLite or Hive
         
         // Close loading dialog
-        Navigator.pop(context);
+        if (context.mounted) Navigator.pop(context);
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data disimpan secara lokal')),
-        );
-        
-        // Navigate back to previous screen after success
-        Navigator.pop(context);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Data disimpan secara lokal')),
+          );
+          
+          // Navigate back to previous screen after success
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
       // Close loading dialog
-      Navigator.pop(context);
+      if (context.mounted) Navigator.pop(context);
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal mengirim data: $e')),
-      );
+      _logger.e(_tag, 'Error submitting data: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengirim data: $e')),
+        );
+      }
     }
     
     setState(() => _isLoading = false);
@@ -189,7 +230,7 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
                       image: NetworkImage(ApiConstants.baseApiUrl + '/' + widget.store.image!),
                       fit: BoxFit.cover,
                     )
-                  : DecorationImage(
+                  : const DecorationImage(
                       image: AssetImage('assets/images/store_placeholder.jpg'),
                       fit: BoxFit.cover,
                     ),

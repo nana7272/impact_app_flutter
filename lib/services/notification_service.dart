@@ -1,31 +1,31 @@
 import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../firebase_options.dart';
 import '../utils/logger.dart';
+import '../utils/session_manager.dart';
+import '../api/notification_api_service.dart';
 
 // Fungsi handler untuk message di background (saat aplikasi ditutup)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  await NotificationService().setupFlutterNotifications();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseService().setupFlutterNotifications();
   
-  Logger().i('NotificationService', 'Handling background message: ${message.messageId}');
-  // Di sini kita bisa menangani notifikasi background
+  Logger().i('FirebaseService', 'Handling background message: ${message.messageId}');
 }
 
-class NotificationService {
-  static final NotificationService _instance = NotificationService._internal();
+class FirebaseService {
+  static final FirebaseService _instance = FirebaseService._internal();
   final Logger _logger = Logger();
-  final String _tag = 'NotificationService';
+  final String _tag = 'FirebaseService';
 
-  factory NotificationService() {
+  factory FirebaseService() {
     return _instance;
   }
 
-  NotificationService._internal();
+  FirebaseService._internal();
 
   late AndroidNotificationChannel channel;
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
@@ -33,41 +33,54 @@ class NotificationService {
 
   // Inisialisasi Firebase Messaging
   Future<void> initialize() async {
-    // Pastikan Firebase sudah diinisialisasi
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    try {
+      // Pastikan Firebase sudah diinisialisasi
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
 
-    // Set handler background message
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      // Set handler background message
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // Inisialisasi flutter local notifications
-    await setupFlutterNotifications();
+      // Inisialisasi flutter local notifications
+      await setupFlutterNotifications();
 
-    // Listener untuk foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _logger.i(_tag, 'Got a message whilst in the foreground!');
-      _logger.i(_tag, 'Message data: ${message.data}');
+      // Request permission
+      await requestPermission();
 
-      if (message.notification != null) {
-        _logger.i(_tag, 'Message also contained a notification: ${message.notification!.title}');
-        _showNotification(message);
-      }
-    });
+      // Listener untuk foreground messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        _logger.i(_tag, 'Got a message whilst in the foreground!');
+        _logger.i(_tag, 'Message data: ${message.data}');
 
-    // Listener untuk message yang dibuka
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _logger.i(_tag, 'A new onMessageOpenedApp event was published!');
-      _handleNotificationOpen(message);
-    });
+        if (message.notification != null) {
+          _logger.i(_tag, 'Message also contained a notification: ${message.notification!.title}');
+          _showNotification(message);
+        }
+      });
 
-    // Handle initial message (app dibuka dari notifikasi)
-    FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
-      if (message != null) {
-        _logger.i(_tag, 'App opened from terminated state via notification');
+      // Listener untuk message yang dibuka
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        _logger.i(_tag, 'A new onMessageOpenedApp event was published!');
         _handleNotificationOpen(message);
+      });
+
+      // Handle initial message (app dibuka dari notifikasi)
+      FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+        if (message != null) {
+          _logger.i(_tag, 'App opened from terminated state via notification');
+          _handleNotificationOpen(message);
+        }
+      });
+
+      // Register device token after user logged in
+      final bool isLoggedIn = await SessionManager().isLoggedIn();
+      if (isLoggedIn) {
+        await registerDeviceToken();
       }
-    });
+    } catch (e) {
+      _logger.e(_tag, 'Error initializing Firebase: $e');
+    }
   }
 
   // Setup Flutter Local Notifications
@@ -85,15 +98,10 @@ class NotificationService {
 
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
-    /// Create an Android Notification Channel.
-    /// We use this channel in the `AndroidManifest.xml` file to override the
-    /// default FCM channel to enable heads up notifications.
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
-    /// Update the iOS foreground notification presentation options to allow
-    /// heads up notifications.
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
@@ -109,9 +117,6 @@ class NotificationService {
       requestSoundPermission: true,
       requestBadgePermission: true,
       requestAlertPermission: true,
-      //onDidReceiveLocalNotification: (int id, String? title, String? body, String? payload) async {
-        // Handle iOS local notification
-      //},
     );
     
     final InitializationSettings initializationSettings = InitializationSettings(
@@ -152,7 +157,39 @@ class NotificationService {
 
   // Mendapatkan FCM token
   Future<String?> getToken() async {
-    return await FirebaseMessaging.instance.getToken();
+    try {
+      String? token = await FirebaseMessaging.instance.getToken();
+      _logger.i(_tag, 'FCM Token: $token');
+      return token;
+    } catch (e) {
+      _logger.e(_tag, 'Error getting FCM token: $e');
+      return null;
+    }
+  }
+
+  // Register device token ke server
+  Future<bool> registerDeviceToken() async {
+    try {
+      // Make sure user is logged in
+      final isLoggedIn = await SessionManager().isLoggedIn();
+      if (!isLoggedIn) {
+        _logger.w(_tag, 'User is not logged in, cannot register device token');
+        return false;
+      }
+      
+      // Check for user ID presence
+      final user = await SessionManager().getCurrentUser();
+      if (user == null || user.id == null) {
+        _logger.e(_tag, 'User data not found or user ID is null, cannot register device token');
+        return false;
+      }
+      
+      // Use dedicated service to register token
+      return await NotificationApiService().registerDeviceToken();
+    } catch (e) {
+      _logger.e(_tag, 'Error registering device token: $e');
+      return false;
+    }
   }
 
   // Subscribe ke topic
@@ -193,7 +230,7 @@ class NotificationService {
 
   // Handle when notification is opened
   void _handleNotificationOpen(RemoteMessage message) {
-    // Implementasikan navigasi berdasarkan data notifikasi
+    // Implementasi navigasi berdasarkan data notifikasi
     // Contoh:
     // if (message.data.containsKey('screen')) {
     //   final String screen = message.data['screen'];

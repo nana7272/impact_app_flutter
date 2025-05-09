@@ -20,11 +20,18 @@ dependencies:
   permission_handler: ^11.0.0
   intl: ^0.18.0
 
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  path_provider: ^2.1.1               # Tambahkan ini jika belum ada
+  share_plus: ^7.2.1          # Tambahkan ini untuk fitur sharing
+
   # Firebase dependencies
   firebase_core: ^2.32.0
   firebase_messaging: ^14.7.10
   firebase_analytics: ^10.10.7
   flutter_local_notifications: ^19.1.0
+
+
 
 
 dev_dependencies:

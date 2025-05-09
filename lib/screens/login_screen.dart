@@ -10,6 +10,7 @@ import 'package:impact_app/utils/session_manager.dart';
 import 'package:impact_app/models/user_model.dart';
 import 'package:impact_app/utils/form_validator.dart';
 import 'package:impact_app/themes/app_colors.dart';
+import 'package:impact_app/utils/logger.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -24,6 +25,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  final Logger _logger = Logger();
+  final String _tag = 'LoginScreen';
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
@@ -38,14 +41,6 @@ class _LoginScreenState extends State<LoginScreen> {
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
-
-    void _registerDeviceToken() async {
-      try {
-        await NotificationApiService().registerDeviceToken();
-      } catch (e) {
-        print('Error registering device token: $e');
-      }
-    }
     
     try {
       final response = await http.post(
@@ -58,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       
       // Close loading dialog
-      Navigator.pop(context);
+      if (context.mounted) Navigator.pop(context);
       setState(() => _isLoading = false);
       
       if (response.statusCode == 200) {
@@ -67,25 +62,23 @@ class _LoginScreenState extends State<LoginScreen> {
         // Save user data and token
         User user = User.fromJson(data['data']);
         String token = data['token'];
+        
+        _logger.d(_tag, 'Login successful for user: ${user.name}, ID: ${user.id}');
+        
+        // Save session data
         await SessionManager().saveSession(user, token);
         
-        // // Navigate to home
-        // Navigator.pushAndRemoveUntil(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => const HomeScreen()),
-        //   (route) => false,
-        // );
-
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        ).then((_) {
-          // Register device token setelah navigasi selesai
-          _registerDeviceToken();
-        });
-
-
+        // Register device token with user ID
+        _registerDeviceToken();
+        
+        // Navigate to home
+        if (context.mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (route) => false,
+          );
+        }
       } else {
         // Handle login error
         final errorData = json.decode(response.body);
@@ -93,22 +86,42 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       // Close loading dialog if still showing
-      if (Navigator.canPop(context)) {
+      if (context.mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
       }
       
       setState(() => _isLoading = false);
       _showErrorSnackBar('Terjadi kesalahan: $e');
+      _logger.e(_tag, 'Login error: $e');
+    }
+  }
+  
+  Future<void> _registerDeviceToken() async {
+    try {
+      _logger.d(_tag, 'Registering device token after login...');
+      
+      // Gunakan NotificationApiService untuk register token
+      final success = await NotificationApiService().registerDeviceToken();
+      
+      if (success) {
+        _logger.d(_tag, 'Device token registered successfully');
+      } else {
+        _logger.e(_tag, 'Failed to register device token');
+      }
+    } catch (e) {
+      _logger.e(_tag, 'Error registering device token: $e');
     }
   }
   
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

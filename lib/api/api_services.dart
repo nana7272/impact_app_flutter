@@ -6,9 +6,13 @@ import 'package:impact_app/api/api_constants.dart';
 import 'package:impact_app/models/user_model.dart';
 import 'package:impact_app/models/store_model.dart';
 import 'package:impact_app/models/product_model.dart';
+import 'package:impact_app/utils/logger.dart';
+import 'package:impact_app/utils/session_manager.dart';
 
 class ApiService {
   final ApiClient _client = ApiClient();
+  final Logger _logger = Logger();
+  final String _tag = 'ApiService';
   
   // Auth services
   Future<User> login(String email, String password) async {
@@ -34,6 +38,17 @@ class ApiService {
     return stores;
   }
   
+  Future<dynamic> getStoreById(String storeId) async {
+    try {
+      _logger.d(_tag, 'Getting store details for ID: $storeId');
+      final response = await _client.get('${ApiConstants.stores}/$storeId');
+      return response;
+    } catch (e) {
+      _logger.e(_tag, 'Error getting store details: $e');
+      throw e;
+    }
+  }
+  
   Future<Store> addStore(Store store, File image) async {
     final response = await _client.uploadFile(
       ApiConstants.stores,
@@ -45,39 +60,93 @@ class ApiService {
     return Store.fromJson(response['data']);
   }
   
+  // Check-in/Visit services
+  Future<dynamic> getCurrentVisit() async {
+    try {
+      _logger.d(_tag, 'Getting current visit');
+      final user = await SessionManager().getCurrentUser();
+      final response = await _client.get('${ApiConstants.currentVisit}/${user?.id}');
+      _logger.d(_tag, 'Current visit response: $response');
+      return response;
+    } catch (e) {
+      _logger.e(_tag, 'Error getting current visit: $e');
+      return null;
+    }
+  }
+  
   // Check-in services
-  Future<dynamic> checkin(String storeId, double latitude, double longitude, List<File> images, List<String> descriptions) async {
-    Map<String, String> data = {
-      'store_id': storeId,
-      'latitude': latitude.toString(),
-      'longitude': longitude.toString(),
-    };
-    
-    // Add descriptions
-    for (int i = 0; i < descriptions.length; i++) {
-      data['description_${i+1}'] = descriptions[i];
-    }
-    
-    // Upload first image with data
-    final response = await _client.uploadFile(
-      ApiConstants.checkin,
-      images[0],
-      'image_1',
-      data: data,
-    );
-    
-    // If more than one image, upload remaining images as separate requests
-    if (images.length > 1) {
-      for (int i = 1; i < images.length; i++) {
-        await _client.uploadFile(
-          '${ApiConstants.checkin}/${response['data']['id']}/images',
-          images[i],
-          'image_${i+1}',
+  Future<dynamic> checkin(
+    String storeId, 
+    double latitude, 
+    double longitude, 
+    List<File> images, 
+    List<String> descriptions,
+    {String? userId}
+) async {
+    try {
+        _logger.d(_tag, 'Check-in to store: $storeId');
+        
+        Map<String, String> data = {
+          'store_id': storeId,
+          'latitude': latitude.toString(),
+          'longitude': longitude.toString(),
+        };
+        
+        // Add userId explicitly if provided
+        if (userId != null) {
+          data['user_id'] = userId;
+          _logger.d(_tag, 'Adding user_id: $userId to check-in request');
+        } else {
+          // Try to get from session as fallback
+          final user = await SessionManager().getCurrentUser();
+          if (user?.id != null) {
+            data['user_id'] = user!.id!;
+            _logger.d(_tag, 'Adding user_id from session: ${user.id} to check-in request');
+          }
+        }
+        
+        // Add descriptions
+        for (int i = 0; i < descriptions.length; i++) {
+          data['description_${i+1}'] = descriptions[i];
+        }
+        
+        // Log complete data being sent
+        _logger.d(_tag, 'Check-in data: $data');
+        
+        // Upload first image with data
+        final response = await _client.uploadFileMultiple(
+          ApiConstants.checkin,
+          images[0],
+          'image_1',
+          images[1],
+          'image_2',
+          data: data,
         );
-      }
+        
+        // Log response for debugging
+        _logger.d(_tag, 'Check-in response: $response');
+        
+        if (response == null || response['data'] == null) {
+          _logger.e(_tag, 'Invalid check-in response format');
+          return null;
+        }
+        
+        // If more than one image, upload remaining images as separate requests
+        // if (images.length > 1) {
+        //   for (int i = 1; i < images.length; i++) {
+        //     await _client.uploadFile(
+        //       '${ApiConstants.checkin}/${response['data']['id']}/images',
+        //       images[i],
+        //       'image_${i+1}',
+        //     );
+        //   }
+        // }
+        
+        return response['data'];
+    } catch (e) {
+        _logger.e(_tag, 'Error during check-in: $e');
+        return null;
     }
-    
-    return response['data'];
   }
   
   // Checkout service

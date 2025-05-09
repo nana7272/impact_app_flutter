@@ -1,14 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'services/notification_service.dart';
+import 'package:impact_app/services/notification_service.dart';
 import 'screens/intro_screen.dart';
 import 'themes/app_theme.dart';
+import 'utils/logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Inisialisasi notification service
-  await NotificationService().initialize();
+  // Setup logger
+  Logger().setLogLevel(LogLevel.debug);
+  final logger = Logger();
+  logger.i('App', 'Starting application...');
+  
+  try {
+    // Inisialisasi Firebase
+    await FirebaseService().initialize();
+    logger.i('App', 'Firebase initialized successfully');
+  } catch (e) {
+    logger.e('App', 'Failed to initialize Firebase: $e');
+    // Continue even if Firebase fails, app should work without it
+  }
   
   runApp(const MyApp());
 }
