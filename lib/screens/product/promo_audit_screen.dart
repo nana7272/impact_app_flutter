@@ -637,7 +637,7 @@ class _PromoAuditScreenState extends State<PromoAuditScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.store.name ?? 'UNNAMED STORE',
+                    widget.store.nama ?? 'UNNAMED STORE',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -645,7 +645,7 @@ class _PromoAuditScreenState extends State<PromoAuditScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.store.address ?? 'No address',
+                    widget.store.alamat ?? 'No address',
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 14,

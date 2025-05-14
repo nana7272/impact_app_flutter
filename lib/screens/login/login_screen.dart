@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
         User user = User.fromJson(data['data']);
         String token = data['token'];
         
-        _logger.d(_tag, 'Login successful for user: ${user.name}, ID: ${user.id}');
+        _logger.d(_tag, 'Login successful for user: ${user.firstname}, ID: ${user.idLogin}');
         
         // Save session data
         await SessionManager().saveSession(user, token);

@@ -33,11 +33,12 @@ class DBHelper {
   }
 
   // Method untuk mendapatkan directory aplikasi
-Future<Directory> getAppDirectory() async {
-  return await getApplicationDocumentsDirectory();
-}
+  Future<Directory> getAppDirectory() async {
+    return await getApplicationDocumentsDirectory();
+  }
   
   Future<void> _createDb(Database db, int version) async {
+    // Tabel sampling_konsumen
     await db.execute('''
       CREATE TABLE sampling_konsumen(
         id TEXT PRIMARY KEY,
@@ -58,21 +59,151 @@ Future<Directory> getAppDirectory() async {
     ''');
 
     // Tabel promo_audit
-  await db.execute('''
-    CREATE TABLE promo_audit(
-      id TEXT PRIMARY KEY,
-      store_id TEXT,
-      visit_id TEXT,
-      status_promotion INTEGER,
-      extra_display INTEGER,
-      pop_promo INTEGER,
-      harga_promo INTEGER,
-      keterangan TEXT,
-      photo_url TEXT,
-      created_at TEXT,
-      is_synced INTEGER
-    )
-  ''');
+    await db.execute('''
+      CREATE TABLE promo_audit(
+        id TEXT PRIMARY KEY,
+        store_id TEXT,
+        visit_id TEXT,
+        status_promotion INTEGER,
+        extra_display INTEGER,
+        pop_promo INTEGER,
+        harga_promo INTEGER,
+        keterangan TEXT,
+        photo_url TEXT,
+        created_at TEXT,
+        is_synced INTEGER
+      )
+    ''');
+
+    // Tabel sales_print_outs
+    await db.execute('''
+      CREATE TABLE sales_print_outs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        status TEXT NOT NULL,
+        data TEXT NOT NULL
+      )
+    ''');
+
+    // Tabel sales_print_out_items
+    await db.execute('''
+      CREATE TABLE sales_print_out_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sales_print_out_id INTEGER NOT NULL,
+        product_id TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        sell_out_qty INTEGER NOT NULL,
+        sell_out_value REAL NOT NULL,
+        periode TEXT NOT NULL,
+        photo_path TEXT,
+        FOREIGN KEY (sales_print_out_id) REFERENCES sales_print_outs (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Tabel open_ending
+    await db.execute('''
+      CREATE TABLE open_ending (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        is_synced INTEGER NOT NULL,
+        items TEXT NOT NULL
+      )
+    ''');
+
+    // Tabel posm
+    await db.execute('''
+      CREATE TABLE posm (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        is_synced INTEGER NOT NULL,
+        items TEXT NOT NULL,
+        image_paths TEXT
+      )
+    ''');
+
+    // Tabel out_of_stock
+    await db.execute('''
+      CREATE TABLE out_of_stock (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        is_synced INTEGER NOT NULL,
+        items TEXT NOT NULL
+      )
+    ''');
+
+    // Tabel activation
+    await db.execute('''
+      CREATE TABLE activation (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        is_synced INTEGER NOT NULL,
+        items TEXT NOT NULL,
+        image_paths TEXT
+      )
+    ''');
+
+    // Tabel planogram
+    await db.execute('''
+      CREATE TABLE planogram (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        is_synced INTEGER NOT NULL,
+        items TEXT NOT NULL,
+        before_image_paths TEXT,
+        after_image_paths TEXT
+      )
+    ''');
+
+    // Tabel price_monitoring
+    await db.execute('''
+      CREATE TABLE price_monitoring (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        is_synced INTEGER NOT NULL,
+        items TEXT NOT NULL
+      )
+    ''');
+
+    // Tabel competitor
+    await db.execute('''
+      CREATE TABLE competitor (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        is_synced INTEGER NOT NULL,
+        items TEXT NOT NULL,
+        own_image_paths TEXT,
+        competitor_image_paths TEXT
+      )
+    ''');
+
+    // Tabel availability
+    await db.execute('''
+      CREATE TABLE availability (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id TEXT NOT NULL,
+        visit_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        is_synced INTEGER NOT NULL,
+        products TEXT NOT NULL
+      )
+    ''');
     
     // Tabel lain yang mungkin dibutuhkan
   }
@@ -192,5 +323,23 @@ Future<int> countPendingPromoAudits() async {
   );
   return Sqflite.firstIntValue(result) ?? 0;
 }
+
+// Generic method to insert data into a table
+  Future<int> insertData(String table, Map<String, dynamic> data) async {
+    final db = await database;
+    return await db.insert(table, data);
+  }
+
+  // Generic method to get all data from a table
+  Future<List<Map<String, dynamic>>> getAllData(String table) async {
+    final db = await database;
+    return await db.query(table);
+  }
+
+    // Generic method to update data in a table
+  Future<int> updateData(String table, Map<String, dynamic> values, String where, List<dynamic> whereArgs) async {
+    final db = await database;
+    return await db.update(table, values, where: where, whereArgs: whereArgs);
+  }
 }
 

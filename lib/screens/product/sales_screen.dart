@@ -1,20 +1,20 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:impact_app/screens/activation_screen.dart';
-import 'package:impact_app/screens/out_of_stock_screen.dart';
-import 'package:impact_app/screens/posm_screen.dart';
-import 'package:impact_app/screens/price_monitoring_screen.dart';
-import 'package:impact_app/screens/promo_audit_list_screen.dart';
-import 'package:impact_app/screens/sampling_konsumen_list_screen.dart';
-import 'package:impact_app/screens/sampling_konsumen_screen.dart';
-import '../api/api_services.dart';
-import '../models/store_model.dart';
-import '../models/sales_print_out_model.dart';
-import '../screens/sales_print_out_screen.dart';
-import '../screens/open_ending_screen.dart'; // Added import for OpenEndingScreen
-import '../utils/session_manager.dart';
-import '../utils/logger.dart';
-import '../themes/app_colors.dart';
+import 'package:impact_app/screens/product/activation_screen.dart';
+import 'package:impact_app/screens/product/out_of_stock_screen.dart';
+import 'package:impact_app/screens/product/posm_screen.dart';
+import 'package:impact_app/screens/product/price_monitoring_screen.dart';
+import 'package:impact_app/screens/product/promo_audit_list_screen.dart';
+import 'package:impact_app/screens/product/sampling_konsumen_list_screen.dart';
+import 'package:impact_app/screens/product/sampling_konsumen_screen.dart';
+import '../../api/api_services.dart';
+import '../../models/store_model.dart';
+import '../../models/sales_print_out_model.dart';
+import 'sales_print_out_screen.dart';
+import 'open_ending_screen.dart'; // Added import for OpenEndingScreen
+import '../../utils/session_manager.dart';
+import '../../utils/logger.dart';
+import '../../themes/app_colors.dart';
 import 'package:intl/intl.dart';
 
 class SalesScreen extends StatefulWidget {
@@ -59,9 +59,9 @@ class _SalesScreenState extends State<SalesScreen> {
       
       if (currentVisitResponse != null && 
           currentVisitResponse['data'] != null &&
-          currentVisitResponse['data']['store_id'] != null) {
+          currentVisitResponse['data']['id_outlet'] != null) {
         
-        final storeId = currentVisitResponse['data']['store_id'];
+        final storeId = currentVisitResponse['data']['id_outlet'];
         final visitId = currentVisitResponse['data']['id'];
         
         // Parse check-in time
@@ -79,7 +79,7 @@ class _SalesScreenState extends State<SalesScreen> {
           _currentStore = Store.fromJson(storeResponse['data']);
         });
         
-        _logger.d(_tag, 'Current visit loaded: Store ${_currentStore?.name}, Visit $_currentVisitId');
+        _logger.d(_tag, 'Current visit loaded: Store ${_currentStore?.nama}, Visit $_currentVisitId');
       } else {
         _logger.w(_tag, 'No active visit found');
       }
@@ -119,7 +119,7 @@ class _SalesScreenState extends State<SalesScreen> {
         context, 
         MaterialPageRoute(
           builder: (context) => screenBuilder(
-            _currentStore!.id!,
+            _currentStore!.idOutlet!,
             _currentVisitId!,
           )
         )
@@ -259,7 +259,7 @@ class _SalesScreenState extends State<SalesScreen> {
         children: [
           Expanded(
             child: Text(
-              'Active visit:\n${_currentStore?.name}, ${_currentStore?.province} - ${_currentStore?.area}',
+              'Active visit:\n${_currentStore?.nama}, ${_currentStore?.provinsi} - ${_currentStore?.area}',
               style: const TextStyle(color: Colors.white),
             ),
           ),

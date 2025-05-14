@@ -4,12 +4,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'dart:convert';
-import '../models/product_model.dart';
-import '../api/api_services.dart';
-import '../api/api_constants.dart';
-import '../themes/app_colors.dart';
-import '../utils/connectivity_utils.dart';
-import '../widget/search_bar_widget.dart';
+import '../../models/product_model.dart';
+import '../../api/api_services.dart';
+import '../../api/api_constants.dart';
+import '../../themes/app_colors.dart';
+import '../../utils/connectivity_utils.dart';
+import '../../widget/search_bar_widget.dart';
 
 class AvailabilityScreen extends StatefulWidget {
   final String storeId;

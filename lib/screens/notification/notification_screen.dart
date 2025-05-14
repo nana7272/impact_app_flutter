@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:impact_app/screens/checin_screen.dart';
+import 'package:impact_app/screens/checkin/checin_screen.dart';
 import 'package:impact_app/utils/bottom_menu_handler.dart';
 import 'package:impact_app/widget/custom_navbar_bottom_widget.dart';
 import 'package:impact_app/api/notification_api_service.dart';

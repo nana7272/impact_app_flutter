@@ -1,9 +1,9 @@
 
 import 'package:flutter/material.dart';
-import 'package:impact_app/screens/activity_screen.dart';
+import 'package:impact_app/screens/activity/activity_screen.dart';
 import 'package:impact_app/screens/home_screen.dart';
-import 'package:impact_app/screens/notification_screen.dart';
-import 'package:impact_app/screens/setting_profile_screen.dart';
+import 'package:impact_app/screens/notification/notification_screen.dart';
+import 'package:impact_app/screens/profile/setting_profile_screen.dart';
 
 class BottomMenu {
 

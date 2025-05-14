@@ -4,7 +4,7 @@ import 'package:impact_app/api/api_services.dart';
 import 'package:impact_app/api/promo_audit_api_service.dart';
 import 'package:impact_app/models/promo_audit_model.dart';
 import 'package:impact_app/models/store_model.dart';
-import 'package:impact_app/screens/promo_audit_screen.dart';
+import 'package:impact_app/screens/product/promo_audit_screen.dart';
 import 'package:impact_app/themes/app_colors.dart';
 import 'package:impact_app/utils/connectivity_utils.dart';
 import 'package:intl/intl.dart';
@@ -40,7 +40,7 @@ class _PromoAuditListScreenState extends State<PromoAuditListScreen> {
     
     try {
       // Load stores first
-      final stores = await _storeApiService.getStores();
+      final stores = await _storeApiService.getStores(0, 0);
       
       // Load online data
       final onlineData = await _apiService.getPromoAuditHistory();
@@ -141,11 +141,11 @@ class _PromoAuditListScreenState extends State<PromoAuditListScreen> {
   // Get store name by ID
   String _getStoreName(String storeId) {
     final store = _storeList.firstWhere(
-      (store) => store.id == storeId,
-      orElse: () => Store(name: 'Unknown Store'),
+      (store) => store.idOutlet == storeId,
+      orElse: () => Store(nama: 'Unknown Store'),
     );
     
-    return store.name ?? 'Unknown Store';
+    return store.nama ?? 'Unknown Store';
   }
   
   // Format date string
@@ -169,7 +169,7 @@ class _PromoAuditListScreenState extends State<PromoAuditListScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => PromoAuditScreen(
-          storeId: store.id!,
+          storeId: store.idOutlet!,
           visitId: finalVisitId,
           store: store,
         ),
@@ -194,8 +194,8 @@ class _PromoAuditListScreenState extends State<PromoAuditListScreen> {
             itemBuilder: (context, index) {
               final store = _storeList[index];
               return ListTile(
-                title: Text(store.name ?? 'Unnamed Store'),
-                subtitle: Text(store.address ?? 'No address'),
+                title: Text(store.nama ?? 'Unnamed Store'),
+                subtitle: Text(store.alamat ?? 'No address'),
                 onTap: () {
                   Navigator.pop(context);
                   _navigateToPromoAudit(store);
@@ -366,8 +366,8 @@ class _PromoAuditListScreenState extends State<PromoAuditListScreen> {
                   onTap: () {
                     // Get store and navigate to detail page
                     final store = _storeList.firstWhere(
-                      (store) => store.id == item.storeId,
-                      orElse: () => Store(id: item.storeId, name: 'Unknown Store'),
+                      (store) => store.idOutlet == item.storeId,
+                      orElse: () => Store(idOutlet: item.storeId, nama: 'Unknown Store'),
                     );
                     
                     _navigateToPromoAudit(store, visitId: item.visitId);

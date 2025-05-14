@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:impact_app/database/database_helper.dart';
+import 'package:impact_app/offline/ofline_data_manager.dart';
 import '../api/api_client.dart';
 import '../api/api_constants.dart';
 import '../models/product_sales_model.dart';
@@ -12,6 +14,7 @@ class SalesApiService {
   final ApiClient _client = ApiClient();
   final Logger _logger = Logger();
   final String _tag = 'SalesApiService';
+  final OfflineDataManager _offlineDataManager = OfflineDataManager();
 
   // Submit data Open Ending
 Future<bool> submitOpenEnding(String storeId, String visitId, List<Map<String, dynamic>> products) async {
@@ -89,7 +92,7 @@ Future<bool> saveOpenEndingOffline(String storeId, String visitId, List<Map<Stri
       
       // Get user ID from session
       final user = await SessionManager().getCurrentUser();
-      if (user == null || user.id == null) {
+      if (user == null || user.idLogin == null) {
         _logger.e(_tag, 'User data not found');
         return false;
       }
@@ -110,7 +113,7 @@ Future<bool> saveOpenEndingOffline(String storeId, String visitId, List<Map<Stri
       final Map<String, dynamic> requestData = {
         'store_id': storeId,
         'visit_id': visitId,
-        'user_id': user.id, // Explicitly include user_id in request
+        'user_id': user.idLogin, // Explicitly include user_id in request
         'items': items,
       };
       
@@ -211,7 +214,7 @@ Future<bool> saveOpenEndingOffline(String storeId, String visitId, List<Map<Stri
       
       // Get user ID from session
       final user = await SessionManager().getCurrentUser();
-      if (user == null || user.id == null) {
+      if (user == null || user.idLogin == null) {
         _logger.e(_tag, 'User data not found');
         return false;
       }
@@ -220,13 +223,13 @@ Future<bool> saveOpenEndingOffline(String storeId, String visitId, List<Map<Stri
       // For example:
       
       // Create a database helper instance
-      // final dbHelper = DatabaseHelper();
+      //final dbHelper = DatabaseHelper();
       
       // Create the data to save
       final Map<String, dynamic> data = {
         'store_id': storeId,
         'visit_id': visitId,
-        'user_id': user.id,
+        'user_id': user.idLogin,
         'created_at': DateTime.now().toIso8601String(),
         'status': 'pending',
         'items': products.map((p) => {
@@ -240,7 +243,7 @@ Future<bool> saveOpenEndingOffline(String storeId, String visitId, List<Map<Stri
       };
       
       // Save to database
-      // final id = await dbHelper.insertSalesPrintOut(data);
+      //final id = await dbHelper.insertSalesPrintOut(data);
       
       _logger.d(_tag, 'Sales print out saved offline with data: $data');
       return true;
@@ -252,74 +255,10 @@ Future<bool> saveOpenEndingOffline(String storeId, String visitId, List<Map<Stri
   
   // Sync offline sales print out data
   Future<bool> syncOfflineSalesPrintOut() async {
-    try {
-      _logger.d(_tag, 'Syncing offline sales print out data');
-      
-      // Here you would implement synchronization logic
-      // For example:
-      
-      // Get all pending offline data
-      // final dbHelper = DatabaseHelper();
-      // final List<Map<String, dynamic>> offlineData = await dbHelper.getPendingSalesPrintOuts();
-      
-      // if (offlineData.isEmpty) {
-      //   _logger.d(_tag, 'No pending data to sync');
-      //   return true;
-      // }
-      
-      // for (var data in offlineData) {
-      //   try {
-      //     // Extract basic data
-      //     final storeId = data['store_id'];
-      //     final visitId = data['visit_id'];
-      //     final userId = data['user_id'];
-      //     
-      //     // Extract items
-      //     final List<Map<String, dynamic>> items = data['items'];
-      //     final List<ProductSales> products = [];
-      //     final List<String?> photosPaths = [];
-      //     
-      //     for (var item in items) {
-      //       products.add(ProductSales(
-      //         id: item['product_id'],
-      //         name: item['product_name'],
-      //         sellOutQty: item['sell_out_qty'],
-      //         sellOutValue: item['sell_out_value'],
-      //         periode: item['periode'],
-      //       ));
-      //       photosPaths.add(item['photo_path']);
-      //     }
-      //     
-      //     // Convert photo paths to files
-      //     final List<File?> photos = [];
-      //     for (var path in photosPaths) {
-      //       if (path != null) {
-      //         photos.add(File(path));
-      //       } else {
-      //         photos.add(null);
-      //       }
-      //     }
-      //     
-      //     // Submit to server
-      //     final success = await submitSalesPrintOut(storeId, visitId, products, photos);
-      //     
-      //     if (success) {
-      //       // Mark as synced in database
-      //       await dbHelper.updateSalesPrintOutStatus(data['id'], 'synced');
-      //       _logger.d(_tag, 'Successfully synced sales print out ID: ${data['id']}');
-      //     } else {
-      //       _logger.e(_tag, 'Failed to sync sales print out ID: ${data['id']}');
-      //     }
-      //   } catch (e) {
-      //     _logger.e(_tag, 'Error syncing sales print out item: $e');
-      //     // Continue with next item
-      //   }
-      // }
-      
-      return true;
-    } catch (e) {
-      _logger.e(_tag, 'Error syncing offline sales print out: $e');
-      return false;
-    }
+    return _offlineDataManager.syncData(
+      'sales_print_outs', 
+      submitSalesPrintOut,
+      idField: 'id', // Sesuaikan dengan nama field ID di tabel Anda
+    );
   }
 }

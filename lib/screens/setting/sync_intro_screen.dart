@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:impact_app/screens/sync_main_screen.dart';
+import 'package:impact_app/screens/setting/sync_main_screen.dart';
 
 class SyncIntroScreen extends StatelessWidget {
   const SyncIntroScreen({super.key});

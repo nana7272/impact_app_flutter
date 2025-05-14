@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../themes/app_colors.dart';
-import '../utils/connectivity_utils.dart';
-import '../models/store_model.dart';
+import '../../themes/app_colors.dart';
+import '../../utils/connectivity_utils.dart';
+import '../../models/store_model.dart';
 
 class ActivationScreen extends StatefulWidget {
   final Store store;
@@ -252,7 +252,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         Icon(Icons.store, color: Colors.blue[700], size: 30),
                         const SizedBox(width: 10),
                         Text(
-                          widget.store.name ?? 'TK RINDU JAYA',
+                          widget.store.nama ?? 'TK RINDU JAYA',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,

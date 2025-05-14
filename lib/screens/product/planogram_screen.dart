@@ -1,64 +1,113 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../themes/app_colors.dart';
-import '../utils/connectivity_utils.dart';
-import '../models/store_model.dart';
+import '../../themes/app_colors.dart';
+import '../../utils/connectivity_utils.dart';
+import '../../models/store_model.dart';
 
-class PosmScreen extends StatefulWidget {
-  final String storeId;
-  final String visitId;
+class PlanogramScreen extends StatefulWidget {
+  final Store store;
   
-  const PosmScreen({
+  const PlanogramScreen({
     Key? key,
-    required this.storeId,
-    required this.visitId,
+    required this.store,
   }) : super(key: key);
 
   @override
-  State<PosmScreen> createState() => _PosmScreenState();
+  State<PlanogramScreen> createState() => _PlanogramScreenState();
 }
 
-class _PosmScreenState extends State<PosmScreen> {
+class _PlanogramScreenState extends State<PlanogramScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
-  String store = "";
   
-  // List untuk menyimpan multiple POSM items
-  final List<POSMItem> _posmItems = [];
+  // List untuk menyimpan multiple planogram items
+  final List<PlanogramItem> _planogramItems = [];
+  
+  // List untuk tipe display dan issue
+  final List<String> _displayTypes = [
+    'Shelf Display',
+    'Endcap Display',
+    'Counter Display',
+    'Floor Display',
+    'Window Display',
+    'Promotional Display'
+  ];
+  
+  final List<String> _displayIssues = [
+    'Tidak Ada Masalah',
+    'Stock Tidak Lengkap',
+    'Display Berantakan',
+    'Price Tag Tidak Ada',
+    'Produk Bercampur',
+    'Display Rusak'
+  ];
   
   @override
   void initState() {
     super.initState();
-    // Tambahkan POSM item pertama pada init
-    _addNewPOSMItem();
+    // Tambahkan planogram item pertama pada init
+    _addNewPlanogramItem();
   }
   
-  void _addNewPOSMItem() {
+  @override
+  void dispose() {
+    // Dispose semua text controllers
+    for (var item in _planogramItems) {
+      item.descBeforeController.dispose();
+      item.descAfterController.dispose();
+    }
+    super.dispose();
+  }
+  
+  void _addNewPlanogramItem() {
     setState(() {
-      _posmItems.add(POSMItem());
+      _planogramItems.add(PlanogramItem(
+        descBeforeController: TextEditingController(),
+        descAfterController: TextEditingController(),
+      ));
     });
   }
   
-  void _removePOSMItem(int index) {
-    if (_posmItems.length > 1) {
+  void _removePlanogramItem(int index) {
+    if (_planogramItems.length > 1) {
       setState(() {
-        _posmItems.removeAt(index);
+        // Dispose controllers sebelum remove item
+        _planogramItems[index].descBeforeController.dispose();
+        _planogramItems[index].descAfterController.dispose();
+        
+        _planogramItems.removeAt(index);
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Minimal harus ada 1 item POSM')),
+        const SnackBar(content: Text('Minimal harus ada 1 item planogram')),
       );
     }
   }
   
-  Future<void> _pickImage(int index) async {
+  Future<void> _pickBeforeImage(int index) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(source: ImageSource.camera);
       
       if (pickedFile != null) {
         setState(() {
-          _posmItems[index].image = File(pickedFile.path);
+          _planogramItems[index].beforeImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error mengambil gambar: $e')),
+      );
+    }
+  }
+  
+  Future<void> _pickAfterImage(int index) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(source: ImageSource.camera);
+      
+      if (pickedFile != null) {
+        setState(() {
+          _planogramItems[index].afterImage = File(pickedFile.path);
         });
       }
     } catch (e) {
@@ -69,38 +118,33 @@ class _PosmScreenState extends State<PosmScreen> {
   }
   
   bool _validateData() {
-    for (int i = 0; i < _posmItems.length; i++) {
-      if (_posmItems[i].image == null) {
+    for (int i = 0; i < _planogramItems.length; i++) {
+      final item = _planogramItems[i];
+      
+      if (item.displayType.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Mohon ambil foto untuk POSM item ${i + 1}')),
+          SnackBar(content: Text('Mohon pilih Display Type untuk item ${i + 1}')),
         );
         return false;
       }
       
-      if (_posmItems[i].type.isEmpty) {
+      if (item.displayIssue.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Mohon pilih POSM Type untuk item ${i + 1}')),
+          SnackBar(content: Text('Mohon pilih Display Issue untuk item ${i + 1}')),
         );
         return false;
       }
       
-      if (_posmItems[i].status.isEmpty) {
+      if (item.beforeImage == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Mohon pilih POSM Status untuk item ${i + 1}')),
+          SnackBar(content: Text('Mohon ambil Foto Before untuk item ${i + 1}')),
         );
         return false;
       }
       
-      if (_posmItems[i].installed.isEmpty) {
+      if (item.afterImage == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Mohon isi POSM Terpasang untuk item ${i + 1}')),
-        );
-        return false;
-      }
-      
-      if (_posmItems[i].note.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Mohon isi POSM Keterangan untuk item ${i + 1}')),
+          SnackBar(content: Text('Mohon ambil Foto After untuk item ${i + 1}')),
         );
         return false;
       }
@@ -227,7 +271,7 @@ class _PosmScreenState extends State<PosmScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('POSM'),
+        title: const Text('Planogram'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -249,7 +293,7 @@ class _PosmScreenState extends State<PosmScreen> {
                         Icon(Icons.store, color: Colors.blue[700], size: 30),
                         const SizedBox(width: 10),
                         Text(
-                          store ?? 'TK RINDU JAYA',
+                          widget.store.nama ?? 'TK RINDU JAYA',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -259,13 +303,13 @@ class _PosmScreenState extends State<PosmScreen> {
                     ),
                   ),
                   
-                  // POSM Items list
+                  // Planogram Items list
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _posmItems.length,
+                    itemCount: _planogramItems.length,
                     itemBuilder: (context, index) {
-                      return _buildPOSMItemWidget(index);
+                      return _buildPlanogramItemWidget(index);
                     },
                   ),
                   
@@ -274,7 +318,7 @@ class _PosmScreenState extends State<PosmScreen> {
               ),
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addNewPOSMItem,
+        onPressed: _addNewPlanogramItem,
         backgroundColor: Colors.white,
         child: const Icon(Icons.add, color: Colors.blue),
       ),
@@ -325,24 +369,23 @@ class _PosmScreenState extends State<PosmScreen> {
     );
   }
   
-  Widget _buildPOSMItemWidget(int index) {
-    final item = _posmItems[index];
+  Widget _buildPlanogramItemWidget(int index) {
+    final item = _planogramItems[index];
     
     return Container(
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image section with X button
+          // Image section with X button (same as previous components)
           Stack(
             children: [
               GestureDetector(
-                onTap: () => _pickImage(index),
+                onTap: () => {}, // This image is just for reference
                 child: Container(
                   height: 150,
                   width: double.infinity,
@@ -353,28 +396,18 @@ class _PosmScreenState extends State<PosmScreen> {
                       topRight: Radius.circular(8),
                     ),
                   ),
-                  child: item.image != null
-                      ? ClipRRect(
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(8),
-                            topRight: Radius.circular(8),
-                          ),
-                          child: Image.file(
-                            item.image!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                          ),
-                        )
-                      : const Center(
-                          child: Icon(Icons.camera_alt, size: 40, color: Colors.grey),
-                        ),
+                  child: Image.asset(
+                    'assets/placeholder_image.png', // Use a placeholder image
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                  ),
                 ),
               ),
               Positioned(
                 right: 8,
                 top: 8,
                 child: GestureDetector(
-                  onTap: () => _removePOSMItem(index),
+                  onTap: () => _removePlanogramItem(index),
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -388,120 +421,157 @@ class _PosmScreenState extends State<PosmScreen> {
             ],
           ),
           
-          // POSM Type dropdown
+          // Display Type dropdown
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('POSM TYPE'),
-                const SizedBox(height: 4),
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: Colors.grey.shade400)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: item.type.isNotEmpty ? item.type : null,
-                      hint: const Text('Faktur'),
-                      icon: const Icon(Icons.keyboard_arrow_down),
-                      items: const [
-                        DropdownMenuItem(value: 'Faktur', child: Text('Faktur')),
-                        DropdownMenuItem(value: 'Banner', child: Text('Banner')),
-                        DropdownMenuItem(value: 'Poster', child: Text('Poster')),
-                        DropdownMenuItem(value: 'Wobbler', child: Text('Wobbler')),
-                        DropdownMenuItem(value: 'Shelf', child: Text('Shelf')),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          item.type = value ?? '';
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // POSM Status dropdown
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('POSM Status'),
-                const SizedBox(height: 4),
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: Colors.grey.shade400)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: item.status.isNotEmpty ? item.status : null,
-                      hint: const Text('POSM Sudah Terpasang'),
-                      icon: const Icon(Icons.keyboard_arrow_down),
-                      items: const [
-                        DropdownMenuItem(value: 'POSM Sudah Terpasang', child: Text('POSM Sudah Terpasang')),
-                        DropdownMenuItem(value: 'POSM Belum Terpasang', child: Text('POSM Belum Terpasang')),
-                        DropdownMenuItem(value: 'POSM Rusak', child: Text('POSM Rusak')),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          item.status = value ?? '';
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // POSM Terpasang field
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('POSM Terpasang'),
-                const SizedBox(height: 4),
-                TextField(
+                const Text('Display Type'),
+                DropdownButtonFormField<String>(
                   decoration: const InputDecoration(
-                    hintText: '1',
                     border: UnderlineInputBorder(),
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
+                  hint: const Text('Pilih tipe display'),
+                  isExpanded: true,
+                  icon: const Icon(Icons.keyboard_arrow_down),
+                  value: item.displayType.isNotEmpty ? item.displayType : null,
+                  onChanged: (String? newValue) {
                     setState(() {
-                      item.installed = value;
+                      item.displayType = newValue ?? '';
                     });
                   },
+                  items: _displayTypes.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
                 ),
               ],
             ),
           ),
           
-          // POSM Keterangan field
+          // Display Issue dropdown
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('POSM Keterangan'),
-                const SizedBox(height: 4),
-                TextField(
+                const Text('Display issue'),
+                DropdownButtonFormField<String>(
                   decoration: const InputDecoration(
-                    hintText: 'Berhasil',
                     border: UnderlineInputBorder(),
                   ),
-                  onChanged: (value) {
+                  hint: const Text('Pilih masalah display'),
+                  isExpanded: true,
+                  icon: const Icon(Icons.keyboard_arrow_down),
+                  value: item.displayIssue.isNotEmpty ? item.displayIssue : null,
+                  onChanged: (String? newValue) {
                     setState(() {
-                      item.note = value;
+                      item.displayIssue = newValue ?? '';
                     });
                   },
+                  items: _displayIssues.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          
+          // Before and After Photos
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: [
+                // Before Photo
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Foto Before'),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => _pickBeforeImage(index),
+                        child: Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: item.beforeImage != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    item.beforeImage!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  ),
+                                )
+                              : const Center(
+                                  child: Icon(Icons.camera_alt, size: 40, color: Colors.grey),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text('Desc Gambar'),
+                      TextField(
+                        controller: item.descBeforeController,
+                        decoration: const InputDecoration(
+                          hintText: 'Deskripsi foto sebelum',
+                          border: UnderlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(width: 16),
+                
+                // After Photo
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Foto After'),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => _pickAfterImage(index),
+                        child: Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: item.afterImage != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    item.afterImage!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  ),
+                                )
+                              : const Center(
+                                  child: Icon(Icons.camera_alt, size: 40, color: Colors.grey),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text('Desc Gambar'),
+                      TextField(
+                        controller: item.descAfterController,
+                        decoration: const InputDecoration(
+                          hintText: 'Deskripsi foto sesudah',
+                          border: UnderlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -512,29 +582,21 @@ class _PosmScreenState extends State<PosmScreen> {
   }
 }
 
-// Model class untuk POSM Item
-class POSMItem {
-  File? image;
-  String type = '';
-  String status = '';
-  String installed = '';
-  String note = '';
+// Model untuk menyimpan item planogram beserta controller-nya
+class PlanogramItem {
+  File? beforeImage;
+  File? afterImage;
+  String displayType = '';
+  String displayIssue = '';
+  final TextEditingController descBeforeController;
+  final TextEditingController descAfterController;
   
-  POSMItem({
-    this.image,
-    this.type = '',
-    this.status = '',
-    this.installed = '',
-    this.note = '',
+  PlanogramItem({
+    this.beforeImage,
+    this.afterImage,
+    this.displayType = '',
+    this.displayIssue = '',
+    required this.descBeforeController,
+    required this.descAfterController,
   });
-  
-  Map<String, dynamic> toJson() {
-    return {
-      'type': type,
-      'status': status,
-      'installed': installed,
-      'note': note,
-      'image_path': image?.path,
-    };
-  }
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:impact_app/screens/checin_screen.dart';
-import 'package:impact_app/screens/profile_screen.dart';
-import 'package:impact_app/screens/sync_intro_screen.dart';
+import 'package:impact_app/screens/checkin/checin_screen.dart';
+import 'package:impact_app/screens/profile/profile_screen.dart';
+import 'package:impact_app/screens/setting/sync_intro_screen.dart';
 import 'package:impact_app/utils/bottom_menu_handler.dart';
 import 'package:impact_app/widget/custom_navbar_bottom_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';

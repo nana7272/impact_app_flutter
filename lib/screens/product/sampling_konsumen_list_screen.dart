@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:impact_app/api/sampling_konsumen_api_service.dart';
 import 'package:impact_app/models/sampling_konsumen_model.dart';
-import 'package:impact_app/screens/sampling_konsumen_screen.dart';
+import 'package:impact_app/screens/product/sampling_konsumen_screen.dart';
 import 'package:impact_app/themes/app_colors.dart';
 import 'package:impact_app/utils/connectivity_utils.dart';
 import 'package:intl/intl.dart';

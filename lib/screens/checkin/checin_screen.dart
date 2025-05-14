@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:impact_app/screens/documentasi_screen.dart';
+import 'package:impact_app/screens/checkin/documentasi_screen.dart';
 import 'package:impact_app/api/api_services.dart';
 import 'package:impact_app/models/store_model.dart';
 import 'package:impact_app/utils/location_utils.dart';
@@ -48,7 +48,7 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
       ));
       
       // Fetch nearby stores
-      await _fetchNearbyStores();
+      await _fetchNearbyStores(position.latitude, position.longitude);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tidak dapat mengakses lokasi Anda')),
@@ -58,47 +58,14 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
     setState(() => _isLoading = false);
   }
   
-  Future<void> _fetchNearbyStores() async {
+  Future<void> _fetchNearbyStores(double latitude, double longitude) async {
     if (_currentPosition == null) return;
     
     try {
-      final stores = await _apiService.getStores();
+      final stores = await _apiService.getStores(latitude, longitude);
       
       // Calculate distance for each store
-      _nearbyStores = stores.map((store) {
-        if (store.latitude != null && store.longitude != null) {
-          double distance = LocationUtils.calculateDistance(
-            _currentPosition!.latitude,
-            _currentPosition!.longitude,
-            store.latitude!,
-            store.longitude!,
-          );
-          
-          return Store(
-            id: store.id,
-            code: store.code,
-            name: store.name,
-            address: store.address,
-            description: store.description,
-            distributor: store.distributor,
-            segment: store.segment,
-            province: store.province,
-            area: store.area,
-            district: store.district,
-            subDistrict: store.subDistrict,
-            account: store.account,
-            type: store.type,
-            image: store.image,
-            latitude: store.latitude,
-            longitude: store.longitude,
-            distance: distance.toInt(),
-          );
-        }
-        return store;
-      }).toList();
-      
-      // Sort stores by distance
-      _nearbyStores.sort((a, b) => (a.distance ?? 9999).compareTo(b.distance ?? 9999));
+      _nearbyStores = stores;
       
       _setMarkers();
     } catch (e) {
@@ -125,15 +92,15 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
     
     // Add markers for stores
     for (var store in _nearbyStores) {
-      if (store.latitude != null && store.longitude != null) {
-        final int distance = store.distance ?? 999;
+      if (store.lat != null && store.lolat != null) {
+        final int distance = store.distance as int ?? 999;
         final markerColor = distance <= 100 ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed;
 
         _markers.add(
           Marker(
-            markerId: MarkerId(store.id ?? ''),
-            position: LatLng(store.latitude!, store.longitude!),
-            infoWindow: InfoWindow(title: store.name),
+            markerId: MarkerId(store.idOutlet ?? ''),
+            position: LatLng(store.lat! as double, store.lolat! as double),
+            infoWindow: InfoWindow(title: store.nama),
             icon: BitmapDescriptor.defaultMarkerWithHue(markerColor),
             onTap: () => _showStoreDialog(context, store),
           ),
@@ -153,9 +120,9 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
           children: [
             const Icon(Icons.store, color: AppColors.primary),
             const SizedBox(height: 8),
-            Text(store.name ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(store.type ?? ''),
-            Text(store.address ?? ''),
+            Text(store.nama ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(store.typeStore ?? ''),
+            Text(store.alamat ?? ''),
           ],
         ),
         actions: [
@@ -166,14 +133,20 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context); // Close dialog
-              
-              // Navigate to documentation screen with store data
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (BuildContext context) => DocumentasiScreen(store: store),
-                ),
-              );
+
+              if (store.distance as int > 100) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Jarak Outlet Minimum 100 Meter')),
+                );
+              } else {
+                // Navigate to documentation screen with store data
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (BuildContext context) => DocumentasiScreen(store: store),
+                  ),
+                );  
+              }
             },
             child: const Text("Check in"),
           ),
@@ -227,13 +200,13 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
                   const SizedBox(height: 12),
                   // List of nearby stores
                   ..._nearbyStores.take(3).map((store) {
-                    final bool isInRange = (store.distance ?? 999) <= 100;
+                    final bool isInRange = store.distance as int <= 100; 
                     return Card(
                       color: isInRange ? AppColors.success : AppColors.error,
                       child: ListTile(
                         leading: const Icon(Icons.store, color: Colors.white),
                         title: Text(
-                          store.name ?? '',
+                          store.nama ?? '',
                           style: const TextStyle(color: Colors.white),
                         ),
                         trailing: Text(

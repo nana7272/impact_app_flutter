@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import '../firebase_options.dart';
+import '../fcm/firebase_options.dart';
 import '../utils/logger.dart';
 import '../utils/session_manager.dart';
 import '../api/notification_api_service.dart';
@@ -179,7 +179,7 @@ class FirebaseService {
       
       // Check for user ID presence
       final user = await SessionManager().getCurrentUser();
-      if (user == null || user.id == null) {
+      if (user == null || user.idLogin == null) {
         _logger.e(_tag, 'User data not found or user ID is null, cannot register device token');
         return false;
       }

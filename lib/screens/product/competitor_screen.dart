@@ -2,12 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import '../api/competitor_api_service.dart';
-import '../themes/app_colors.dart';
-import '../utils/connectivity_utils.dart';
-import '../models/product_model.dart';
-import '../models/competitor_model.dart';
-import '../widget/search_bar_widget.dart';
+import '../../api/competitor_api_service.dart';
+import '../../themes/app_colors.dart';
+import '../../utils/connectivity_utils.dart';
+import '../../models/product_model.dart';
+import '../../models/competitor_model.dart';
+import '../../widget/search_bar_widget.dart';
 import 'package:intl/intl.dart';
 
 class CompetitorScreen extends StatefulWidget {

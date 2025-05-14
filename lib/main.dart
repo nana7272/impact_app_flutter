@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:impact_app/screens/setting/provider/sync_provider.dart';
 import 'package:impact_app/services/notification_service.dart';
-import 'screens/intro_screen.dart';
+import 'package:provider/provider.dart';
+import 'screens/login/intro_screen.dart';
 import 'themes/app_theme.dart';
 import 'utils/logger.dart';
+import 'package:intl/date_symbol_data_local.dart'; // << PENTING
+
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+
+  WidgetsFlutterBinding.ensureInitialized(); // Pastikan binding Flutter sudah siap
+  await initializeDateFormatting('id_ID', null); 
   
   // Setup logger
   Logger().setLogLevel(LogLevel.debug);
@@ -22,7 +28,16 @@ void main() async {
     // Continue even if Firebase fails, app should work without it
   }
   
-  runApp(const MyApp());
+  //runApp(const MyApp());
+  runApp(
+    MultiProvider( // Gunakan MultiProvider jika ada banyak provider
+      providers: [
+        ChangeNotifierProvider(create: (_) => SyncProvider()),
+        // Provider lain...
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

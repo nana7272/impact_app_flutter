@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../api/sales_api_service.dart';
-import '../themes/app_colors.dart';
-import '../utils/connectivity_utils.dart';
-import '../models/product_sales_model.dart';
-import '../widget/search_bar_widget.dart';
+import '../../api/sales_api_service.dart';
+import '../../themes/app_colors.dart';
+import '../../utils/connectivity_utils.dart';
+import '../../models/product_sales_model.dart';
+import '../../widget/search_bar_widget.dart';
 
 class OpenEndingScreen extends StatefulWidget {
   final String storeId;

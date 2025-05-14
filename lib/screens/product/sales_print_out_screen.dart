@@ -1,15 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:impact_app/offline/ofline_data_manager.dart';
 import 'package:impact_app/widget/search_bar_widget.dart';
 import 'package:intl/intl.dart';
-import '../api/sales_api_service.dart';
-import '../database/database_helper.dart';
-import '../models/product_sales_model.dart';
-import '../themes/app_colors.dart';
-import '../utils/connectivity_utils.dart';
-import '../utils/logger.dart';
-import '../utils/session_manager.dart';
+import '../../api/sales_api_service.dart';
+import '../../database/database_helper.dart';
+import '../../models/product_sales_model.dart';
+import '../../themes/app_colors.dart';
+import '../../utils/connectivity_utils.dart';
+import '../../utils/logger.dart';
+import '../../utils/session_manager.dart';
 
 // Custom Badge widget untuk platform compatibility
 class Badge extends StatelessWidget {
@@ -73,12 +74,13 @@ class SalesPrintOutScreen extends StatefulWidget {
 
 class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
   final SalesApiService _apiService = SalesApiService();
-  final DatabaseHelper _dbHelper = DatabaseHelper();
+  //final DatabaseHelper _dbHelper = DatabaseHelper();
   final Logger _logger = Logger();
   final String _tag = 'SalesPrintOutScreen';
   final TextEditingController _searchController = TextEditingController();
   final List<ProductSales> _selectedProducts = [];
   final List<File?> _productPhotos = [];
+  final OfflineDataManager _offlineDataManager = OfflineDataManager();
   
   bool _isLoading = false;
   bool _isSearching = false;
@@ -101,9 +103,9 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
   // Check for pending offline data
   Future<void> _checkPendingData() async {
     try {
-      final count = await _dbHelper.getPendingCount();
+      //final count = await _dbHelper.getPendingCount();
       setState(() {
-        _pendingCount = count;
+        //_pendingCount = count;
       });
       _logger.d(_tag, 'Pending offline data count: $_pendingCount');
     } catch (e) {
@@ -323,6 +325,77 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
     });
   }
 
+  // Future<void> _sendOffline() async {
+  //   setState(() {
+  //     _isLoading = true;
+  //   });
+
+  //   // Show loading dialog
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: false,
+  //     builder: (context) => const Center(child: CircularProgressIndicator()),
+  //   );
+
+  //   try {
+  //     List<String?> photosPaths = [];
+  //       for (var photo in _productPhotos) {
+  //         photosPaths.add(photo?.path);
+  //       }
+
+  //       // Create the data to save
+  //       final Map<String, dynamic> data = {
+  //         'store_id': widget.storeId,
+  //         'visit_id': widget.visitId,
+  //         'user_id': (await SessionManager().getCurrentUser())?.id, // Get user ID
+  //         'created_at': DateTime.now().toIso8601String(),
+  //         'status': 'pending',
+  //         'items': _selectedProducts.map((p) => {
+  //           'product_id': p.id,
+  //           'product_name': p.name,
+  //           'sell_out_qty': p.sellOutQty,
+  //           'sell_out_value': p.sellOutValue,
+  //           'periode': p.periode,
+  //           'photo_path': photosPaths[_selectedProducts.indexOf(p)],
+  //         }).toList(),
+  //       };
+
+  //     bool success = await _offlineDataManager.saveDataOffline('sales_print_outs', data); // Use the offline data manager
+
+  //     // Close loading dialog
+  //     if (context.mounted) Navigator.pop(context);
+
+  //     if (success) {
+  //       if (context.mounted) {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           const SnackBar(content: Text('Data berhasil disimpan secara lokal')),
+  //         );
+  //         Navigator.pop(context); // Kembali ke layar sebelumnya
+  //       }
+  //     } else {
+  //       if (context.mounted) {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           const SnackBar(content: Text('Gagal menyimpan data secara lokal')),
+  //         );
+  //       }
+  //     }
+  //   } catch (e) {
+  //     // Close loading dialog
+  //     if (context.mounted) Navigator.pop(context);
+      
+  //     _logger.e(_tag, 'Error saving offline: $e');
+  //     if (context.mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error: $e')),
+  //       );
+  //     }
+  //   }
+
+  //   setState(() {
+  //     _isLoading = false;
+  //   });
+  // }
+
   // Kirim data online
   Future<void> _sendOnline() async {
     setState(() {
@@ -355,7 +428,7 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
     try {
       // Get user information to make sure it's included in the request
       final user = await SessionManager().getCurrentUser();
-      if (user == null || user.id == null) {
+      if (user == null || user.idLogin == null) {
         _logger.e(_tag, 'User data not found');
         
         // Close loading dialog
@@ -372,7 +445,7 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
       }
       
       // Log user info for debugging
-      _logger.d(_tag, 'Sending with user_id: ${user.id}');
+      _logger.d(_tag, 'Sending with user_id: ${user.idLogin}');
       
       bool success = await _apiService.submitSalesPrintOut(
         widget.storeId,

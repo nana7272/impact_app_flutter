@@ -50,3 +50,17 @@ class ApiConstants {
   static const String promoAudit = '/api/promo-audit';
 
 }
+
+class Header {
+  static headpos() {
+    return {
+      'Content-Type': 'application/json',
+      'User-Agent': 'IOS 1.0.0 (1)'
+    };
+  }
+  static headget() {
+    return {
+      'User-Agent': 'IOS 1.0.0 (1)'
+    };
+  }
+}

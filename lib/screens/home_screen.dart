@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:impact_app/screens/checin_screen.dart';
-import 'package:impact_app/screens/pending_screen.dart';
+import 'package:impact_app/screens/checkin/checin_screen.dart';
+import 'package:impact_app/screens/offline/pending_screen.dart';
 import 'package:impact_app/screens/presentation_screen.dart';
-import 'package:impact_app/screens/product_list_screen.dart';
-import 'package:impact_app/screens/sales_screen.dart';
+import 'package:impact_app/screens/product/product_list_screen.dart';
+import 'package:impact_app/screens/product/sales_screen.dart';
 import 'package:impact_app/utils/bottom_menu_handler.dart';
 import 'package:impact_app/widget/custom_navbar_bottom_widget.dart';
 import 'package:impact_app/widget/header_home_widget.dart';
@@ -98,9 +98,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       
       if (currentVisitResponse != null && 
           currentVisitResponse['data'] != null &&
-          currentVisitResponse['data']['store_id'] != null) {
+          currentVisitResponse['data']['id_outlet'] != null) {
         
-        final storeId = currentVisitResponse['data']['store_id'];
+        final storeId = currentVisitResponse['data']['id_outlet'];
         final visitId = currentVisitResponse['data']['id'];
         
         // Parse check-in time
@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           _startTimer();
         }
         
-        _logger.d(_tag, 'Current visit loaded: Store ${_currentStore?.name}, Visit $_currentVisitId');
+        _logger.d(_tag, 'Current visit loaded: Store ${_currentStore?.nama}, Visit $_currentVisitId');
       } else {
         if (_isDisposed) return;
         
@@ -449,7 +449,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         children: [
           Expanded(
             child: Text(
-              'Anda sedang mengunjungi outlet:\n${_currentStore?.name}, ${_currentStore?.province} - ${_currentStore?.area}',
+              'Anda sedang mengunjungi outlet:\n${_currentStore?.nama}, ${_currentStore?.provinsi} - ${_currentStore?.area}',
               style: const TextStyle(color: Colors.white),
             ),
           ),

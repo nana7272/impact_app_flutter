@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../api/price_monitoring_api_service.dart';
-import '../themes/app_colors.dart';
-import '../utils/connectivity_utils.dart';
-import '../models/product_model.dart';
-import '../widget/search_bar_widget.dart';
+import '../../api/price_monitoring_api_service.dart';
+import '../../themes/app_colors.dart';
+import '../../utils/connectivity_utils.dart';
+import '../../models/product_model.dart';
+import '../../widget/search_bar_widget.dart';
 
 class PriceMonitoringScreen extends StatefulWidget {
   final String storeId;

@@ -18,7 +18,7 @@ class NotificationApiService {
     try {
       // Dapatkan user info terlebih dahulu
       final user = await SessionManager().getCurrentUser();
-      if (user == null || user.id == null) {
+      if (user == null || user.idLogin == null) {
         _logger.e(_tag, 'User data not found or user ID is null');
         return false;
       }
@@ -37,7 +37,7 @@ class NotificationApiService {
       // Log untuk debugging
       _logger.d(_tag, 'Registering device token: $token');
       _logger.d(_tag, 'Device type: $deviceType');
-      _logger.d(_tag, 'User ID: ${user.id}');
+      _logger.d(_tag, 'User ID: ${user.idLogin}');
       
       // Register token ke server
       final response = await _client.post(
@@ -45,7 +45,7 @@ class NotificationApiService {
         {
           'device_token': token,
           'device_type': deviceType,
-          'user_id': user.id, // Tambahkan user_id ke payload
+          'user_id': user.idLogin, // Tambahkan user_id ke payload
         },
       );
       

@@ -25,8 +25,13 @@ class ApiService {
   }
   
   // Store services
-  Future<List<Store>> getStores() async {
-    final response = await _client.get(ApiConstants.stores);
+  Future<List<Store>> getStores(double latitude, double longitude) async {
+
+   //final iduser = new SessionManager().getCurrentUser()
+    final user = await SessionManager().getCurrentUser();
+    final idUser = user?.idLogin;
+    final response = await _client.get(ApiConstants.stores+'/$latitude/$longitude/$idUser');
+    _logger.d(_tag, '$user.idLogin');
     
     List<Store> stores = [];
     if (response['data'] != null) {
@@ -54,7 +59,7 @@ class ApiService {
       ApiConstants.stores,
       image,
       'foto',
-      data: store.toJson(),
+      data: _convertMapValuesToString(store.toJson() as Map<String, dynamic>),
     );
     
     return Store.fromJson(response['data']);
@@ -65,7 +70,7 @@ class ApiService {
     try {
       _logger.d(_tag, 'Getting current visit');
       final user = await SessionManager().getCurrentUser();
-      final response = await _client.get('${ApiConstants.currentVisit}/${user?.id}');
+      final response = await _client.get('${ApiConstants.currentVisit}/${user?.idLogin}');
       _logger.d(_tag, 'Current visit response: $response');
       return response;
     } catch (e) {
@@ -99,9 +104,9 @@ class ApiService {
         } else {
           // Try to get from session as fallback
           final user = await SessionManager().getCurrentUser();
-          if (user?.id != null) {
-            data['user_id'] = user!.id!;
-            _logger.d(_tag, 'Adding user_id from session: ${user.id} to check-in request');
+          if (user?.idLogin != null) {
+            data['user_id'] = user!.idLogin!;
+            _logger.d(_tag, 'Adding user_id from session: ${user.idLogin} to check-in request');
           }
         }
         
@@ -188,7 +193,7 @@ class ApiService {
         ApiConstants.profile,
         profileImage,
         'profile_image',
-        data: user.toJson(),
+        data: _convertMapValuesToString(user.toJson()),
       );
       return User.fromJson(response['data']);
     } else {
@@ -198,5 +203,10 @@ class ApiService {
       );
       return User.fromJson(response['data']);
     }
+  }
+
+  // Helper function to convert Map<String, dynamic> to Map<String, String>
+  Map<String, String> _convertMapValuesToString(Map<String, dynamic> map) {
+    return map.map((key, value) => MapEntry(key, value?.toString() ?? ''));
   }
 }
