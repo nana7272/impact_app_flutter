@@ -34,10 +34,13 @@ class _SyncMainScreenState extends State<SyncMainScreen> {
                 TextPosition(offset: _searchController.text.length));
           }
         }
+        //provider.clearSearch();
         // Menampilkan pesan error/sukses awal jika ada dari provider
         _handleProviderMessages(provider);
       }
     });
+
+    //_searchController.clear(); 
   }
 
   void _handleProviderMessages(SyncProvider provider) {

@@ -41,12 +41,6 @@ class _CheckinMapScreenState extends State<CheckinMapScreen> {
         _accuracy = position.accuracy;
       });
       
-      // Move camera to current position
-      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
-        LatLng(position.latitude, position.longitude),
-        16,
-      ));
-      
       // Fetch nearby stores
       await _fetchNearbyStores(position.latitude, position.longitude);
     } else {

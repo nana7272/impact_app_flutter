@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../api/sales_api_service.dart';
 import '../../themes/app_colors.dart';
 import '../../utils/connectivity_utils.dart';
 import '../../models/product_sales_model.dart';
@@ -20,7 +19,7 @@ class OutOfStockScreen extends StatefulWidget {
 }
 
 class _OutOfStockScreenState extends State<OutOfStockScreen> {
-  final SalesApiService _apiService = SalesApiService();
+  //final SalesApiService _apiService = SalesApiService();
   final TextEditingController _searchController = TextEditingController();
   final List<OOSProduct> _selectedProducts = [];
   
@@ -53,9 +52,9 @@ class _OutOfStockScreenState extends State<OutOfStockScreen> {
     });
 
     try {
-      final products = await _apiService.searchProducts(keyword);
+      //final products = await _apiService.searchProducts(keyword);
       setState(() {
-        _searchResults = products;
+        //_searchResults = products;
         _isSearching = false;
       });
     } catch (e) {

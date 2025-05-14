@@ -2,15 +2,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:impact_app/offline/ofline_data_manager.dart';
+import 'package:impact_app/screens/setting/model/product_model.dart';
 import 'package:impact_app/widget/search_bar_widget.dart';
 import 'package:intl/intl.dart';
-import '../../api/sales_api_service.dart';
-import '../../database/database_helper.dart';
-import '../../models/product_sales_model.dart';
-import '../../themes/app_colors.dart';
-import '../../utils/connectivity_utils.dart';
-import '../../utils/logger.dart';
-import '../../utils/session_manager.dart';
+import 'api/sales_printout_api_service.dart';
+import '../../../database/database_helper.dart';
+import '../../../models/product_sales_model.dart';
+import '../../../themes/app_colors.dart';
+import '../../../utils/connectivity_utils.dart';
+import '../../../utils/logger.dart';
+import '../../../utils/session_manager.dart';
 
 // Custom Badge widget untuk platform compatibility
 class Badge extends StatelessWidget {
@@ -73,44 +74,31 @@ class SalesPrintOutScreen extends StatefulWidget {
 }
 
 class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
-  final SalesApiService _apiService = SalesApiService();
-  //final DatabaseHelper _dbHelper = DatabaseHelper();
+  final SalesByPrintOutApiService _apiService = SalesByPrintOutApiService();
   final Logger _logger = Logger();
   final String _tag = 'SalesPrintOutScreen';
   final TextEditingController _searchController = TextEditingController();
   final List<ProductSales> _selectedProducts = [];
   final List<File?> _productPhotos = [];
-  final OfflineDataManager _offlineDataManager = OfflineDataManager();
+  final List<TextEditingController> _periodeControllers = [];
   
   bool _isLoading = false;
   bool _isSearching = false;
-  List<ProductSales> _searchResults = [];
-  int _pendingCount = 0;
+  List<ProductModel> _searchResults = [];
 
   @override
   void initState() {
     super.initState();
-    _checkPendingData();
     _logger.d(_tag, 'Initialized with storeId: ${widget.storeId}, visitId: ${widget.visitId}');
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    super.dispose();
-  }
-
-  // Check for pending offline data
-  Future<void> _checkPendingData() async {
-    try {
-      //final count = await _dbHelper.getPendingCount();
-      setState(() {
-        //_pendingCount = count;
-      });
-      _logger.d(_tag, 'Pending offline data count: $_pendingCount');
-    } catch (e) {
-      _logger.e(_tag, 'Error checking pending data: $e');
+    for (var controller in _periodeControllers) {
+      controller.dispose();
     }
+    super.dispose();
   }
 
   // Pencarian produk
@@ -128,7 +116,8 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
     });
 
     try {
-      final products = await _apiService.searchProducts(keyword);
+      final products = await DatabaseHelper.instance.getProductSearch(query: keyword);
+
       setState(() {
         _searchResults = products;
         _isSearching = false;
@@ -146,9 +135,9 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
   }
 
   // Menambahkan produk ke list
-  void _addProduct(ProductSales product) {
+  void _addProduct(ProductModel product) {
     // Periksa apakah produk sudah ada di list
-    final existingIndex = _selectedProducts.indexWhere((p) => p.id == product.id);
+    final existingIndex = _selectedProducts.indexWhere((p) => p.id == product.idProduk);
     if (existingIndex >= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Produk sudah ditambahkan')),
@@ -157,13 +146,24 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
     }
 
     setState(() {
-      _selectedProducts.add(product);
+      final newProductSales = ProductSales(
+        id: product.idProduk,
+        name: product.nama,
+        stock: 0,
+        price: double.tryParse(product.harga ?? '0'),
+        image: product.gambar,
+        sellOutQty: 0,
+        sellOutValue: 0,
+        periode: '', // Periode diinisialisasi kosong
+      );
+      _selectedProducts.add(newProductSales);
       _productPhotos.add(null);
+      // Tambahkan controller untuk field periode produk baru
+      _periodeControllers.add(TextEditingController(text: newProductSales.periode));
       _searchResults = [];
       _searchController.clear();
     });
-    
-    _logger.d(_tag, 'Added product: ${product.name}');
+    _logger.d(_tag, 'Added product: ${product.nama}');
   }
 
   // Menghapus produk dari list
@@ -171,21 +171,69 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
     setState(() {
       _selectedProducts.removeAt(index);
       _productPhotos.removeAt(index);
+      // Hapus dan dispose controller yang sesuai
+      _periodeControllers[index].dispose();
+      _periodeControllers.removeAt(index);
     });
-    
     _logger.d(_tag, 'Removed product at index: $index');
   }
 
   // Mengambil foto produk
   Future<void> _takePicture(int index) async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+    final XFile? image = await picker.pickImage(source: ImageSource.camera, imageQuality: 30);
     
     if (image != null) {
       setState(() {
         _productPhotos[index] = File(image.path);
       });
       _logger.d(_tag, 'Took picture for product at index: $index');
+    }
+  }
+
+  // Method untuk memilih rentang tanggal periode
+  Future<void> _pickPeriod(BuildContext context, int index) async {
+    final product = _selectedProducts[index];
+    final controller = _periodeControllers[index];
+
+    DateTimeRange? initialRange;
+    // Coba parse periode yang sudah ada untuk initialDateRange
+    if (product.periode.isNotEmpty) {
+      try {
+        final parts = product.periode.split(' - ');
+        if (parts.length == 2) {
+          final DateFormat formatter = DateFormat('dd/MM/yyyy');
+          final DateTime startDate = formatter.parse(parts[0]);
+          final DateTime endDate = formatter.parse(parts[1]);
+          initialRange = DateTimeRange(start: startDate, end: endDate);
+        }
+      } catch (e) {
+        _logger.w(_tag, "Gagal mem-parse string periode: ${product.periode}, error: $e");
+      }
+    }
+
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(DateTime.now().year - 5), // Batas awal 5 tahun lalu
+      lastDate: DateTime(DateTime.now().year + 5),  // Batas akhir 5 tahun ke depan
+      initialDateRange: initialRange,
+      helpText: 'Pilih Rentang Periode',
+      cancelText: 'Batal',
+      confirmText: 'Pilih',
+      errorFormatText: 'Format tanggal salah',
+      errorInvalidText: 'Tanggal tidak valid',
+      errorInvalidRangeText: 'Rentang tidak valid',
+      fieldStartHintText: 'Tanggal Mulai',
+      fieldEndHintText: 'Tanggal Selesai',
+    );
+
+    if (picked != null) {
+      final DateFormat formatter = DateFormat('dd/MM/yyyy');
+      final formattedDateRange = '${formatter.format(picked.start)} - ${formatter.format(picked.end)}';
+      setState(() {
+        product.periode = formattedDateRange;
+        controller.text = formattedDateRange;
+      });
     }
   }
 
@@ -282,8 +330,6 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
       }
 
       bool success = await _apiService.saveSalesPrintOutOffline(
-        widget.storeId,
-        widget.visitId,
         _selectedProducts,
         photosPaths,
       );
@@ -306,8 +352,6 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
         }
       }
       
-      // Update pending count
-      await _checkPendingData();
     } catch (e) {
       // Close loading dialog
       if (context.mounted) Navigator.pop(context);
@@ -325,77 +369,7 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
     });
   }
 
-  // Future<void> _sendOffline() async {
-  //   setState(() {
-  //     _isLoading = true;
-  //   });
-
-  //   // Show loading dialog
-  //   showDialog(
-  //     context: context,
-  //     barrierDismissible: false,
-  //     builder: (context) => const Center(child: CircularProgressIndicator()),
-  //   );
-
-  //   try {
-  //     List<String?> photosPaths = [];
-  //       for (var photo in _productPhotos) {
-  //         photosPaths.add(photo?.path);
-  //       }
-
-  //       // Create the data to save
-  //       final Map<String, dynamic> data = {
-  //         'store_id': widget.storeId,
-  //         'visit_id': widget.visitId,
-  //         'user_id': (await SessionManager().getCurrentUser())?.id, // Get user ID
-  //         'created_at': DateTime.now().toIso8601String(),
-  //         'status': 'pending',
-  //         'items': _selectedProducts.map((p) => {
-  //           'product_id': p.id,
-  //           'product_name': p.name,
-  //           'sell_out_qty': p.sellOutQty,
-  //           'sell_out_value': p.sellOutValue,
-  //           'periode': p.periode,
-  //           'photo_path': photosPaths[_selectedProducts.indexOf(p)],
-  //         }).toList(),
-  //       };
-
-  //     bool success = await _offlineDataManager.saveDataOffline('sales_print_outs', data); // Use the offline data manager
-
-  //     // Close loading dialog
-  //     if (context.mounted) Navigator.pop(context);
-
-  //     if (success) {
-  //       if (context.mounted) {
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           const SnackBar(content: Text('Data berhasil disimpan secara lokal')),
-  //         );
-  //         Navigator.pop(context); // Kembali ke layar sebelumnya
-  //       }
-  //     } else {
-  //       if (context.mounted) {
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           const SnackBar(content: Text('Gagal menyimpan data secara lokal')),
-  //         );
-  //       }
-  //     }
-  //   } catch (e) {
-  //     // Close loading dialog
-  //     if (context.mounted) Navigator.pop(context);
-      
-  //     _logger.e(_tag, 'Error saving offline: $e');
-  //     if (context.mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Error: $e')),
-  //       );
-  //     }
-  //   }
-
-  //   setState(() {
-  //     _isLoading = false;
-  //   });
-  // }
-
+  
   // Kirim data online
   Future<void> _sendOnline() async {
     setState(() {
@@ -448,8 +422,6 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
       _logger.d(_tag, 'Sending with user_id: ${user.idLogin}');
       
       bool success = await _apiService.submitSalesPrintOut(
-        widget.storeId,
-        widget.visitId,
         _selectedProducts,
         _productPhotos,
       );
@@ -487,68 +459,6 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
       _isLoading = false;
     });
   }
-
-  // Sync pending data
-  Future<void> _syncPendingData() async {
-    if (_pendingCount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tidak ada data pending untuk disinkronkan')),
-      );
-      return;
-    }
-
-    // Check internet connection
-    bool isConnected = await ConnectivityUtils.checkInternetConnection();
-    if (!isConnected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tidak ada koneksi internet untuk sinkronisasi')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      bool success = await _apiService.syncOfflineSalesPrintOut();
-      
-      // Close loading dialog
-      if (context.mounted) Navigator.pop(context);
-      
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sinkronisasi data berhasil')),
-        );
-        
-        // Update pending count
-        await _checkPendingData();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal sinkronisasi data')),
-        );
-      }
-    } catch (e) {
-      // Close loading dialog
-      if (context.mounted) Navigator.pop(context);
-      
-      _logger.e(_tag, 'Error syncing data: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sinkronisasi: $e')),
-      );
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
-  }
   
   @override
   Widget build(BuildContext context) {
@@ -556,17 +466,7 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
       appBar: AppBar(
         title: const Text('Sales Print Out'),
         backgroundColor: AppColors.secondary,
-        actions: [
-          if (_pendingCount > 0)
-            IconButton(
-              icon: Badge(
-                label: Text('$_pendingCount'),
-                child: const Icon(Icons.sync),
-              ),
-              onPressed: _syncPendingData,
-              tooltip: 'Sync pending data',
-            ),
-        ],
+        
       ),
       body: Column(
         children: [
@@ -595,17 +495,17 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
                 itemBuilder: (context, index) {
                   final product = _searchResults[index];
                   return ListTile(
-                    leading: product.image != null
+                    leading: product.gambar != null
                         ? Image.network(
-                            product.image!,
+                            product.gambar!,
                             width: 50,
                             height: 50,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported),
                           )
                         : const Icon(Icons.inventory),
-                    title: Text(product.name ?? ''),
-                    subtitle: Text('Stok: ${product.stock} | Harga: ${NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(product.price)}'),
+                    title: Text(product.nama),
+                    subtitle: Text('Kode: ${product.kode}'),
                     trailing: IconButton(
                       icon: const Icon(Icons.add_circle, color: AppColors.success),
                       onPressed: () => _addProduct(product),
@@ -737,16 +637,17 @@ class _SalesPrintOutScreenState extends State<SalesPrintOutScreen> {
                               ),
                               const SizedBox(height: 16),
                               const Text('Periode'),
-                              TextField(
+                              TextFormField(
+                                controller: _periodeControllers[index],
+                                readOnly: true,
                                 decoration: const InputDecoration(
                                   border: OutlineInputBorder(),
                                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  hintText: 'Januari 2025',
+                                  hintText: 'Pilih Periode',
+                                  suffixIcon: Icon(Icons.calendar_today),
                                 ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    product.periode = value;
-                                  });
+                                onTap: () {
+                                  _pickPeriod(context, index);
                                 },
                               ),
                             ],

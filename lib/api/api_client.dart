@@ -166,6 +166,54 @@ class ApiClient {
     }
   }
 
+  Future<String> uploadFileMultiples(String endpoint, List<File?> file,  Map<String, String> data, List<Map<String, String>> data2) async {
+    final headers = await _getHeaders();
+    // Remove content-type, akan diatur secara otomatis
+    headers.remove('Content-Type');
+    
+    _logger.d(_tag, 'UPLOAD Request to: ${ApiConstants.baseApiUrl}$endpoint');
+    //_logger.d(_tag, 'UPLOAD Field: $fieldName, Data: $data');
+    
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiConstants.baseApiUrl}$endpoint'),
+      );
+      
+      request.headers.addAll(headers);
+      //_logger.d(_tag, 'UPLOAD Image: ${file?.path ?? ''}');
+      _logger.d(_tag, 'Files list for upload: ${file.length} item(s). Is empty: ${file.isEmpty}. List content: $file');
+      for(File? f in file) {
+        final filePath = f?.path ?? '';
+        _logger.d(_tag, 'Looping for file. Current file object: $f. Resolved path for MultipartFile: "$filePath"');
+        if (filePath.isEmpty) {
+          _logger.w(_tag, 'File path is empty. MultipartFile.fromPath will likely fail or use an empty path.');
+        }
+        request.files.add(await http.MultipartFile.fromPath('image[]', filePath));
+        _logger.d(_tag, 'File with path "$filePath" added to request.files (or attempt was made).');
+        // Jika Anda ingin melihat path asli dari f (sebelum null check), Anda bisa uncomment log di bawah ini
+        // _logger.d(_tag, 'Original f?.path for UPLOAD Image: ${f?.path}');
+      }
+
+      request.fields.addAll(data);
+    
+      for(Map<String, String> d in data2) {
+        request.fields.addAll(d);
+      }
+      
+      final streamResponse = await request.send();
+      final response = await http.Response.fromStream(streamResponse);
+      
+      return response.toString();
+    } catch (e) {
+      _logger.e(_tag, 'Error on UPLOAD request: $e');
+      throw ApiException(
+        statusCode: 0,
+        message: 'Network error: $e',
+      );
+    }
+  }
+
   // Upload multipart 
   Future<dynamic> uploadFileMultiple(String endpoint, File file, String fieldName, File file2, String fieldName2, {Map<String, String>? data}) async {
     final headers = await _getHeaders();

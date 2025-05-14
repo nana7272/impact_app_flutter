@@ -86,6 +86,7 @@ class ApiService {
     double longitude, 
     List<File> images, 
     List<String> descriptions,
+    String outlet,
     {String? userId}
 ) async {
     try {
@@ -93,6 +94,7 @@ class ApiService {
         
         Map<String, String> data = {
           'store_id': storeId,
+          'outlet': outlet,
           'latitude': latitude.toString(),
           'longitude': longitude.toString(),
         };

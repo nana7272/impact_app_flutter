@@ -10,8 +10,8 @@ import 'package:impact_app/screens/product/sampling_konsumen_screen.dart';
 import '../../api/api_services.dart';
 import '../../models/store_model.dart';
 import '../../models/sales_print_out_model.dart';
-import 'sales_print_out_screen.dart';
-import 'open_ending_screen.dart'; // Added import for OpenEndingScreen
+import 'sales_print_out/sales_print_out_screen.dart';
+import 'open_ending/open_ending_screen.dart'; // Added import for OpenEndingScreen
 import '../../utils/session_manager.dart';
 import '../../utils/logger.dart';
 import '../../themes/app_colors.dart';

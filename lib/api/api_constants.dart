@@ -22,10 +22,10 @@ class ApiConstants {
   static const String notifications = '/api/notifications';
 
   // Sales Print Out endpoints
-  static const String salesPrintOut = '/api/sales-print-out';
+  static const String salesPrintOut = '/api/salesbyprintout/create';
   static const String searchProducts = '/api/products/search';
 
-  static const String openEnding = '/api/open-ending';
+  static const String openEnding = '/api/openending';
   static const String posm = '/api/posm';
   static const String outOfStock = '/api/out-of-stock';
   static const String activation = '/api/activation';

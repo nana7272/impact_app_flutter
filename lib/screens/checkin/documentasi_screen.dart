@@ -30,7 +30,7 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
   final String _tag = 'DocumentasiScreen';
 
   Future<void> _pickImage(int index) async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.camera);
+    final picked = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 30);
     if (picked != null) {
       setState(() {
         if (index == 1) {
@@ -117,6 +117,7 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
           widget.store.lolat! as double,
           images,
           descriptions,
+          widget.store.nama!,
           userId: user.idLogin, // Explicitly pass the user ID
         );
         
@@ -125,6 +126,10 @@ class _DocumentasiScreenState extends State<DocumentasiScreen> {
         
         if (visitData != null) {
           if (context.mounted) {
+
+             SessionManager().saveOutletVisit(widget.store);
+             SessionManager().saveVisitId(visitData['id']);
+
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Data berhasil dikirim ke server')),
             );

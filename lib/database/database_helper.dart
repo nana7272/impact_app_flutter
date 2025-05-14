@@ -20,7 +20,7 @@ class DatabaseHelper {
     String path = join(documentsDirectory.path, 'app_database.db');
     return await openDatabase(
       path,
-      version: 3, // Naikkan versi jika ada perubahan skema
+      version: 8, // Naikkan versi karena ada tabel baru
       onCreate: _onCreate,
       onUpgrade: _onUpgrade, // << TAMBAHKAN INI
     );
@@ -28,16 +28,86 @@ class DatabaseHelper {
 
   // Tambahkan method _onUpgrade
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 3) { // Jika versi lama < 2 (versi di mana kita menambahkan id_area)
-      await db.execute('''
-        ALTER TABLE kelurahans ADD COLUMN id_area TEXT REFERENCES areas(idArea)
-      ''');
+    if (oldVersion < 5) { 
+      //await db.execute('''
+        //ALTER TABLE kelurahans ADD COLUMN id_area TEXT REFERENCES areas(idArea)
+      //''');
       // Anda mungkin perlu mengisi nilai id_area untuk data lama jika memungkinkan,
       // tapi untuk kasus ini, data baru akan memilikinya.
+
+      await db.execute('''
+      CREATE TABLE sales_print_outs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_product TEXT NOT NULL,
+        product_name TEXT NOT NULL, 
+        qty TEXT NOT NULL,
+        total TEXT NOT NULL,
+        periode TEXT NOT NULL,
+        image TEXT NOT NULL,
+        id_outlet TEXT NOT NULL,
+        id_principle TEXT NOT NULL,
+        id_user TEXT NOT NULL,
+        tgl TEXT NOT NULL,
+        outlet TEXT NOT NULL
+      )
+    ''');
+    }
+    if (oldVersion < 6) {
+      await db.execute('''
+      CREATE TABLE open_ending_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_principle INTEGER,
+        id_outlet TEXT,
+        id_product TEXT,
+        sf INTEGER,
+        si INTEGER,
+        sa INTEGER,
+        so INTEGER,
+        ket TEXT,
+        sender TEXT,
+        tgl TEXT,
+        selving TEXT,
+        expired_date TEXT,
+        listing TEXT,
+        return_qty INTEGER,
+        return_reason TEXT,
+        is_synced INTEGER DEFAULT 0 
+      )
+    ''');
+    }
+
+    if (oldVersion < 7) {
+      await db.execute('''
+        ALTER TABLE open_ending_data RENAME COLUMN expired_date TO expired
+      ''');
+    }
+
+    if (oldVersion < 8) {
+      await db.execute('''
+        ALTER TABLE open_ending_data RENAME COLUMN return_qty TO return
+      ''');
     }
   }
 
   Future _onCreate(Database db, int version) async {
+    // Tabel sales_print_outs
+    await db.execute('''
+      CREATE TABLE sales_print_outs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_product TEXT NOT NULL,
+        product_name TEXT NOT NULL, 
+        qty TEXT NOT NULL,
+        total TEXT NOT NULL,
+        periode TEXT NOT NULL,
+        image TEXT NOT NULL,
+        id_outlet TEXT NOT NULL,
+        id_principle TEXT NOT NULL,
+        id_user TEXT NOT NULL,
+        tgl TEXT NOT NULL,
+        outlet TEXT NOT NULL
+      )
+    ''');
+
     await db.execute('''
       CREATE TABLE areas (
         idArea TEXT PRIMARY KEY,
@@ -129,6 +199,38 @@ class DatabaseHelper {
         FOREIGN KEY (id_kecamatan) REFERENCES kecamatans(id)
       )
     ''');
+
+    // Tabel open_ending_data (juga buat di onCreate jika ini instalasi baru)
+    await db.execute('''
+      CREATE TABLE open_ending_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_principle INTEGER,
+        id_outlet TEXT,
+        id_product TEXT,
+        sf INTEGER,
+        si INTEGER,
+        sa INTEGER,
+        so INTEGER,
+        ket TEXT,
+        sender TEXT,
+        tgl TEXT,
+        selving TEXT,
+        expired_date TEXT,
+        listing TEXT,
+        return_qty INTEGER,
+        return_reason TEXT,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+  }
+
+  Future<void> insertData(String table, List<Map<String, dynamic>> data) async {
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (var area in data) {
+      batch.insert(table, area, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
   }
 
   // --- Operasi Insert (dengan conflict replace untuk update jika ada) ---
@@ -273,4 +375,63 @@ class DatabaseHelper {
       return [];
     }
   }
+
+  Future<List<ProductModel>> getProductSearch({String? query}) async {
+    Database db = await instance.database;
+    List<Map<String, dynamic>> maps;
+    if (query != null && query.isNotEmpty) {
+      maps = await db.query('products',
+          where: 'nama LIKE ? OR kode LIKE ?',
+          whereArgs: ['%$query%', '%$query%']);
+    } else {
+      maps = await db.query('areas');
+    }
+    if (maps.isNotEmpty) {
+      return maps.map((map) => ProductModel.fromJson(map)).toList();
+    } else {
+      return [];
+    }
+  }
+
+  // METODE BARU: Mengambil semua data sales print out offline
+  Future<List<Map<String, dynamic>>> getAllSalesPrintOuts() async {
+    Database db = await instance.database;
+    // Urutkan berdasarkan outlet dan periode agar pengelompokan lebih mudah di Dart
+    return await db.query('sales_print_outs', orderBy: 'outlet ASC, periode ASC');
+  }
+
+  // METODE BARU: Menghapus data sales print out berdasarkan list ID
+  Future<void> deleteSalesPrintOutsByIds(List<int> ids) async {
+    if (ids.isEmpty) return;
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int id in ids) {
+      batch.delete('sales_print_outs', where: 'id = ?', whereArgs: [id]);
+    }
+    await batch.commit(noResult: true);
+    print("Deleted ${ids.length} sales print outs from local DB.");
+  }
+
+  // --- Operasi untuk Open Ending Data ---
+  Future<int> insertOpenEndingData(Map<String, dynamic> data) async {
+    Database db = await instance.database;
+    return await db.insert('open_ending_data', data, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllOpenEndingData() async {
+    Database db = await instance.database;
+    return await db.query('open_ending_data', where: 'is_synced = ?', whereArgs: [0]);
+  }
+
+  Future<void> deleteOpenEndingDataByIds(List<int> ids) async {
+    if (ids.isEmpty) return;
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int id in ids) {
+      batch.delete('open_ending_data', where: 'id = ?', whereArgs: [id]);
+    }
+    await batch.commit(noResult: true);
+    print("Deleted ${ids.length} open ending data items from local DB.");
+  }
+
 }
