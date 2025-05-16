@@ -1,16 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../themes/app_colors.dart';
-import '../../utils/connectivity_utils.dart';
-import '../../models/store_model.dart';
+import 'package:impact_app/models/activation_model.dart';
+import 'package:impact_app/models/store_model.dart';
+import 'package:impact_app/screens/product/activation/api/activation_api_service.dart';
+import 'package:impact_app/screens/product/activation/model/activation_model.dart';
+import 'package:impact_app/utils/connectivity_utils.dart';
+import 'package:impact_app/utils/logger.dart';
+import 'package:impact_app/utils/session_manager.dart';
+import 'package:intl/intl.dart'; // Untuk format tanggal
 
 class ActivationScreen extends StatefulWidget {
-  final Store store;
   
   const ActivationScreen({
     Key? key,
-    required this.store,
   }) : super(key: key);
 
   @override
@@ -20,6 +23,9 @@ class ActivationScreen extends StatefulWidget {
 class _ActivationScreenState extends State<ActivationScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+  final ActivationApiService _apiService = ActivationApiService();
+  final Logger _logger = Logger();
+  late Store _selectedStore = Store();
   
   // List untuk menyimpan multiple activation items
   final List<ActivationItem> _activationItems = [];
@@ -42,7 +48,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
     super.dispose();
   }
   
-  void _addNewActivationItem() {
+  Future<void> _addNewActivationItem() async {
+    _selectedStore = (await SessionManager().getStoreData())!;
     setState(() {
       _activationItems.add(ActivationItem(
         programController: TextEditingController(),
@@ -162,63 +169,132 @@ class _ActivationScreenState extends State<ActivationScreen> {
     });
     
     // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+    // showDialog(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (context) => const Center(child: CircularProgressIndicator()),
+    // );
     
+    final store = await SessionManager().getStoreData();
+
     try {
       if (isOnline) {
-        // Verifikasi koneksi internet
         bool hasInternet = await ConnectivityUtils.checkInternetConnection();
         if (!hasInternet) {
           Navigator.pop(context); // tutup dialog loading
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak ada koneksi internet. Silakan gunakan mode offline.')),
-          );
-          setState(() {
-            _isLoading = false;
-          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Tidak ada koneksi internet. Silakan gunakan mode offline.')),
+            );
+          }
+          setState(() { _isLoading = false; });
           return;
         }
         
-        // Simulasi pengiriman data ke server
-        await Future.delayed(const Duration(seconds: 2));
+        final user = await SessionManager().getCurrentUser();
+        if (user == null || user.idLogin == null || user.idpriciple == null) {
+          Navigator.pop(context);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Data user tidak lengkap untuk pengiriman online.')),
+            );
+          }
+          setState(() { _isLoading = false; });
+          return;
+        }
+
+        
+        List<ActivationEntryModel> entriesToSubmit = _activationItems.map((item) {
+          return ActivationEntryModel(
+            idUser: user.idLogin!,
+            idPinciple: user.idpriciple!,
+            idOutlet: store?.idOutlet ?? '',
+            outletName: store?.nama, // Untuk field outlet_customer di API
+            tgl: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            program: item.programController.text,
+            rangePeriode: item.periodeController.text,
+            keterangan: item.keteranganController.text,
+            imageFile: item.image,
+          );
+        }).toList();
+
+        bool success = await _apiService.submitActivationOnline(entriesToSubmit);
         
         // Close loading dialog
         Navigator.pop(context);
         
-        // Tampilkan pesan sukses
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data berhasil dikirim ke server')),
-        );
-        
-        // Kembali ke halaman sebelumnya
-        Navigator.pop(context);
+        if (success) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Data berhasil dikirim ke server')),
+            );
+            Navigator.pop(context); // Kembali
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Gagal mengirim data ke server')),
+            );
+          }
+        }
       } else {
-        // Simulasi penyimpanan data secara lokal
-        await Future.delayed(const Duration(seconds: 1));
+        final user = await SessionManager().getCurrentUser();
+         if (user == null || user.idLogin == null || user.idpriciple == null) {
+          Navigator.pop(context);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Data user tidak lengkap untuk penyimpanan offline.')),
+            );
+          }
+          setState(() { _isLoading = false; });
+          return;
+        }
+
+        List<ActivationEntryModel> entriesToSave = _activationItems.map((item) {
+           return ActivationEntryModel(
+            idUser: user.idLogin!,
+            idPinciple: user.idpriciple!,
+            idOutlet: store?.idOutlet ?? '',
+            outletName: store?.nama,
+            tgl: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            program: item.programController.text,
+            rangePeriode: item.periodeController.text,
+            keterangan: item.keteranganController.text,
+            imagePath: item.image?.path, // Simpan path untuk offline
+          );
+        }).toList();
+
+        bool success = await _apiService.saveActivationOffline(entriesToSave);
         
         // Close loading dialog
         Navigator.pop(context);
         
-        // Tampilkan pesan sukses
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data berhasil disimpan secara lokal')),
-        );
-        
-        // Kembali ke halaman sebelumnya
-        Navigator.pop(context);
+        if (success) {
+           if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Data berhasil disimpan secara lokal')),
+            );
+            Navigator.pop(context); // Kembali
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Gagal menyimpan data secara lokal')),
+            );
+          }
+        }
       }
     } catch (e) {
       // Close loading dialog
       Navigator.pop(context);
       
       // Tampilkan pesan error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Terjadi kesalahan: $e')),
-      );
+      _logger.e("ActivationScreen", "Error submitting data: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Terjadi kesalahan: $e')),
+        );
+      }
       
       setState(() {
         _isLoading = false;
@@ -252,7 +328,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         Icon(Icons.store, color: Colors.blue[700], size: 30),
                         const SizedBox(width: 10),
                         Text(
-                          widget.store.nama ?? 'TK RINDU JAYA',
+                          _selectedStore.nama ?? 'TK RINDU JAYA',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -272,6 +348,25 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     },
                   ),
                   
+                  // Tombol Kirim Data
+                  if (_activationItems.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _showSendDataDialog,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue, // Ganti dengan AppColors.primary jika ada
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(color: Colors.white)
+                              : const Text('KIRIM DATA', style: TextStyle(fontSize: 16, color: Colors.white)),
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 100), // Space for FAB
                 ],
               ),

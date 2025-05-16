@@ -1,8 +1,10 @@
+import 'package:impact_app/screens/product/oos/model/oos_item_model.dart';
 import 'package:impact_app/screens/setting/model/area_model.dart';
 import 'package:impact_app/screens/setting/model/kecamatan_model.dart';
 import 'package:impact_app/screens/setting/model/kelurahan_model.dart';
 import 'package:impact_app/screens/setting/model/outlet_model.dart';
 import 'package:impact_app/screens/setting/model/product_model.dart';
+import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -20,7 +22,7 @@ class DatabaseHelper {
     String path = join(documentsDirectory.path, 'app_database.db');
     return await openDatabase(
       path,
-      version: 8, // Naikkan versi karena ada tabel baru
+      version: 17, // Naikkan versi karena ada tabel baru price_monitoring_entries
       onCreate: _onCreate,
       onUpgrade: _onUpgrade, // << TAMBAHKAN INI
     );
@@ -28,68 +30,96 @@ class DatabaseHelper {
 
   // Tambahkan method _onUpgrade
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 5) { 
-      //await db.execute('''
-        //ALTER TABLE kelurahans ADD COLUMN id_area TEXT REFERENCES areas(idArea)
-      //''');
-      // Anda mungkin perlu mengisi nilai id_area untuk data lama jika memungkinkan,
-      // tapi untuk kasus ini, data baru akan memilikinya.
-
+    if (oldVersion < 17) {
       await db.execute('''
-      CREATE TABLE sales_print_outs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        id_product TEXT NOT NULL,
-        product_name TEXT NOT NULL, 
-        qty TEXT NOT NULL,
-        total TEXT NOT NULL,
-        periode TEXT NOT NULL,
-        image TEXT NOT NULL,
-        id_outlet TEXT NOT NULL,
-        id_principle TEXT NOT NULL,
-        id_user TEXT NOT NULL,
-        tgl TEXT NOT NULL,
-        outlet TEXT NOT NULL
-      )
-    ''');
-    }
-    if (oldVersion < 6) {
-      await db.execute('''
-      CREATE TABLE open_ending_data (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        id_principle INTEGER,
-        id_outlet TEXT,
-        id_product TEXT,
-        sf INTEGER,
-        si INTEGER,
-        sa INTEGER,
-        so INTEGER,
-        ket TEXT,
-        sender TEXT,
-        tgl TEXT,
-        selving TEXT,
-        expired_date TEXT,
-        listing TEXT,
-        return_qty INTEGER,
-        return_reason TEXT,
-        is_synced INTEGER DEFAULT 0 
-      )
-    ''');
-    }
-
-    if (oldVersion < 7) {
-      await db.execute('''
-        ALTER TABLE open_ending_data RENAME COLUMN expired_date TO expired
+        CREATE TABLE IF NOT EXISTS price_monitoring_entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id_principle TEXT,
+          id_outlet TEXT,
+          outlet_name TEXT,
+          id_product TEXT,
+          product_name TEXT,
+          harga_normal TEXT,
+          harga_diskon TEXT,
+          harga_gabungan TEXT,
+          ket TEXT,
+          sender TEXT,
+          tgl TEXT,
+          is_synced INTEGER DEFAULT 0
+        )
       ''');
+      print("Table price_monitoring_entries created or verified on upgrade.");
+    }
+    if (oldVersion < 16) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS activation_entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id_user TEXT,
+          id_pinciple TEXT,
+          id_outlet TEXT,
+          outlet_name TEXT, 
+          tgl TEXT,
+          program TEXT,
+          range_periode TEXT,
+          keterangan TEXT,
+          image_path TEXT,
+          is_synced INTEGER DEFAULT 0
+        )
+      ''');
+      print("Table activation_entries created or verified on upgrade.");
+    }
+    if (oldVersion < 15) {
+      try {
+        await db.execute("ALTER TABLE oos_entries ADD COLUMN outlet_name TEXT");
+         print("Column outlet_name added to oos_entries on upgrade.");
+      } catch (e) {
+        print("Error adding column outlet_name to oos_entries (may already exist): $e");
+      }
     }
 
-    if (oldVersion < 8) {
-      await db.execute('''
-        ALTER TABLE open_ending_data RENAME COLUMN return_qty TO return
-      ''');
-    }
   }
 
   Future _onCreate(Database db, int version) async {
+    
+    //oos
+    await db.execute('''
+      CREATE TABLE oos_entries (
+        local_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_principle INTEGER NOT NULL,
+        id_outlet INTEGER NOT NULL,
+        outlet_name TEXT,
+        id_product INTEGER NOT NULL,
+        product_name TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        ket TEXT,
+        type TEXT NOT NULL,
+        sender INTEGER NOT NULL,
+        tgl TEXT NOT NULL,
+        is_empty INTEGER NOT NULL DEFAULT 1,
+        is_synced INTEGER NOT NULL DEFAULT 0,
+        timestamp TEXT 
+      )
+    ''');
+
+    //posm_entries
+    await db.execute('''
+      CREATE TABLE posm_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_user TEXT,
+        id_pinciple TEXT,
+        id_outlet TEXT,
+        outlet_name TEXT,
+        visit_id TEXT, 
+        type TEXT,
+        posm_status TEXT,
+        quantity INTEGER,
+        ket TEXT,
+        image_path TEXT,
+        timestamp TEXT,
+        is_synced INTEGER DEFAULT 0 
+      )
+    ''');
+
     // Tabel sales_print_outs
     await db.execute('''
       CREATE TABLE sales_print_outs (
@@ -206,7 +236,9 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         id_principle INTEGER,
         id_outlet TEXT,
+        outlet_name TEXT,
         id_product TEXT,
+        product_name TEXT, 
         sf INTEGER,
         si INTEGER,
         sa INTEGER,
@@ -219,6 +251,42 @@ class DatabaseHelper {
         listing TEXT,
         return_qty INTEGER,
         return_reason TEXT,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+
+    // Tabel activation_entries (juga buat di onCreate jika ini instalasi baru)
+    await db.execute('''
+      CREATE TABLE activation_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_user TEXT,
+        id_pinciple TEXT,
+        id_outlet TEXT,
+        outlet_name TEXT, 
+        tgl TEXT,
+        program TEXT,
+        range_periode TEXT,
+        keterangan TEXT,
+        image_path TEXT,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+
+    // Tabel price_monitoring_entries (juga buat di onCreate jika ini instalasi baru)
+    await db.execute('''
+      CREATE TABLE price_monitoring_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_principle TEXT,
+        id_outlet TEXT,
+        outlet_name TEXT,
+        id_product TEXT,
+        product_name TEXT,
+        harga_normal TEXT,
+        harga_diskon TEXT,
+        harga_gabungan TEXT,
+        ket TEXT,
+        sender TEXT,
+        tgl TEXT,
         is_synced INTEGER DEFAULT 0
       )
     ''');
@@ -376,15 +444,17 @@ class DatabaseHelper {
     }
   }
 
-  Future<List<ProductModel>> getProductSearch({String? query}) async {
+  Future<List<ProductModel>> getProductSearch({String? query, int limit = 10}) async {
     Database db = await instance.database;
     List<Map<String, dynamic>> maps;
     if (query != null && query.isNotEmpty) {
       maps = await db.query('products',
-          where: 'nama LIKE ? OR kode LIKE ?',
-          whereArgs: ['%$query%', '%$query%']);
+          where: 'LOWER(nama) LIKE LOWER(?) OR LOWER(kode) LIKE LOWER(?)',
+          whereArgs: ['%$query%', '%$query%'],
+          limit: limit,
+      );
     } else {
-      maps = await db.query('areas');
+      maps = await db.query('products', limit: limit);
     }
     if (maps.isNotEmpty) {
       return maps.map((map) => ProductModel.fromJson(map)).toList();
@@ -433,5 +503,154 @@ class DatabaseHelper {
     await batch.commit(noResult: true);
     print("Deleted ${ids.length} open ending data items from local DB.");
   }
+
+  // Fungsi untuk memasukkan data POSM
+  Future<int> insertPosmEntry(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    // Tambahkan timestamp saat ini
+    row['is_synced'] = 0; // Tandai sebagai belum sinkron
+    return await db.insert('posm_entries', row);
+  }
+
+  // Fungsi untuk mendapatkan semua data POSM yang belum sinkron (opsional, untuk mekanisme sinkronisasi)
+  Future<List<Map<String, dynamic>>> getUnsyncedPosmEntries() async {
+    Database db = await instance.database;
+    return await db.query('posm_entries', where: 'is_synced = ?', whereArgs: [0]);
+  }
+
+  // Fungsi untuk menandai data POSM sebagai sudah sinkron (opsional)
+  Future<int> markPosmEntryAsSynced(int id) async {
+    Database db = await instance.database;
+    return await db.update('posm_entries', {'is_synced': 1}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Mengambil semua POSM entries yang belum sinkron
+  Future<List<Map<String, dynamic>>> getAllUnsyncedPosmEntries() async {
+    Database db = await instance.database;
+    return await db.query('posm_entries', where: 'is_synced = ?', whereArgs: [0], orderBy: 'outlet_name ASC, timestamp ASC');
+  }
+
+  // Menghapus POSM entries berdasarkan list ID lokal
+  Future<void> deletePosmEntriesByIds(List<int> ids) async {
+    if (ids.isEmpty) return;
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int id in ids) {
+      batch.delete('posm_entries', where: 'id = ?', whereArgs: [id]);
+    }
+    await batch.commit(noResult: true);
+    print("Deleted ${ids.length} POSM entries from local DB.");
+  }
+
+  Future<int> insertOOSItem(OOSItem oosItem) async {
+    Database db = await instance.database;
+    Map<String, dynamic> row = oosItem.toMapLocal();
+    row.remove('local_id'); // Hapus local_id karena akan auto-increment
+    final String currentTimestamp = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    row['timestamp'] = currentTimestamp; // Tambah timestamp
+    return await db.insert('oos_entries', row, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<OOSItem>> getUnsyncedOOSItems() async {
+    Database db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'oos_entries',
+      where: 'is_synced = ?',
+      whereArgs: [0],
+      orderBy: 'timestamp DESC',
+    );
+    return List.generate(maps.length, (i) {
+      return OOSItem.fromMapLocal(maps[i]);
+    });
+  }
+
+  Future<List<OOSItem>> getAllOOSItems() async { // Untuk halaman list offline
+    Database db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'oos_entries',
+      orderBy: 'timestamp DESC',
+    );
+    return List.generate(maps.length, (i) {
+      return OOSItem.fromMapLocal(maps[i]);
+    });
+  }
+
+
+  Future<int> updateOOSItemSyncStatus(int localId, int isSynced) async {
+    Database db = await instance.database;
+    return await db.update(
+      'oos_entries',
+      {'is_synced': isSynced},
+      where: 'local_id = ?',
+      whereArgs: [localId],
+    );
+  }
+
+  Future<int> deleteOOSItem(int localId) async {
+    Database db = await instance.database;
+    return await db.delete(
+      'oos_entries',
+      where: 'local_id = ?',
+      whereArgs: [localId],
+    );
+  }
+
+  Future<void> deleteMultipleOOSItems(List<int> localIds) async {
+    if (localIds.isEmpty) return;
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int id in localIds) {
+      batch.delete('oos_entries', where: 'local_id = ?', whereArgs: [id]);
+    }
+    await batch.commit(noResult: true);
+    print("Deleted ${localIds.length} OOS items from local DB.");
+  }
+
+  // --- Operasi untuk Activation Entries ---
+  Future<int> insertActivationEntry(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    row['is_synced'] = 0; // Tandai sebagai belum sinkron
+    return await db.insert('activation_entries', row);
+  }
+
+  Future<List<Map<String, dynamic>>> getUnsyncedActivationEntries() async {
+    Database db = await instance.database;
+    return await db.query('activation_entries', where: 'is_synced = ?', whereArgs: [0], orderBy: 'outlet_name ASC, tgl ASC');
+  }
+
+  Future<void> deleteActivationEntriesByIds(List<int> ids) async {
+    if (ids.isEmpty) return;
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int id in ids) {
+      batch.delete('activation_entries', where: 'id = ?', whereArgs: [id]);
+    }
+    await batch.commit(noResult: true);
+    print("Deleted ${ids.length} activation entries from local DB.");
+  }
+
+  // --- Operasi untuk Price Monitoring Entries ---
+  Future<int> insertPriceMonitoringEntry(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    row['is_synced'] = 0; // Tandai sebagai belum sinkron
+    return await db.insert('price_monitoring_entries', row);
+  }
+
+  Future<List<Map<String, dynamic>>> getUnsyncedPriceMonitoringEntries() async {
+    Database db = await instance.database;
+    return await db.query('price_monitoring_entries', where: 'is_synced = ?', whereArgs: [0], orderBy: 'outlet_name ASC, tgl ASC');
+  }
+
+  Future<void> deletePriceMonitoringEntriesByIds(List<int> ids) async {
+    if (ids.isEmpty) return;
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int id in ids) {
+      batch.delete('price_monitoring_entries', where: 'id = ?', whereArgs: [id]);
+    }
+    await batch.commit(noResult: true);
+    print("Deleted ${ids.length} price monitoring entries from local DB.");
+  }
+
 
 }

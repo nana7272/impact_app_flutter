@@ -239,37 +239,64 @@ class SyncProvider with ChangeNotifier {
     _successMessage = "";
     notifyListeners();
 
+    // Bersihkan data lokal untuk area yang dipilih sebelum sinkronisasi baru
+    // Ini penting jika tujuannya adalah "refresh" data.
+    // Jika tujuannya "append", logika offset harus lebih kompleks.
+    // Untuk kasus sinkronisasi dari nol atau refresh total per area:
+    await _dbHelper.clearTableByArea('outlets', _selectedArea!.idArea);
+    // Untuk produk, pertimbangkan apakah akan menghapus semua produk atau hanya yang terkait principle/area.
+    // Jika produk bersifat global atau hanya per principle, jangan clear di sini kecuali itu strateginya.
+    await _dbHelper.deleteAll('products'); // Contoh jika produk di-clear semua
+    await _dbHelper.clearTableByArea('kecamatans', _selectedArea!.idArea);
+    await _dbHelper.clearTableByArea('kelurahans', _selectedArea!.idArea);
+    
+    // Reset local counts di provider setelah clear DB
+    _localOutletCount = 0;
+    _localProductCount = await _dbHelper.getCount('products'); // Asumsi produk tidak di-clear per area, jadi ambil count yang ada. Jika di-clear, set ke 0.
+    _localKecamatanCount = 0;
+    _localKelurahanCount = 0;
+    _updateProgressUI(); 
+    notifyListeners();
+
+
+    // --- BAGIAN LAMA YANG PERLU DIGANTI ---
     // Helper untuk memanggil sync per tipe dan menangani state
-    Future<void> _sync(String type) async {
-        bool result = await _syncDataTypeRecursive(type, 0); // Mulai dengan offset 0 untuk tipe ini
-        if (!result &&_syncProcessStatus != SyncStatus.error) { // Jika gagal tapi bukan karena error network/parsing sebelumnya
-            _errorMessage = "Gagal menyelesaikan sinkronisasi untuk $type.";
-            _syncProcessStatus = SyncStatus.error; // Set error jika ada kegagalan spesifik
-        }
-        notifyListeners(); // Update UI setelah setiap tipe data
-    }
+    // Future<void> _sync(String type) async {
+    //     bool result = await _syncDataTypeRecursive(type, 0); // Mulai dengan offset 0 untuk tipe ini
+    //     if (!result &&_syncProcessStatus != SyncStatus.error) { // Jika gagal tapi bukan karena error network/parsing sebelumnya
+    //         _errorMessage = "Gagal menyelesaikan sinkronisasi untuk $type.";
+    //         _syncProcessStatus = SyncStatus.error; // Set error jika ada kegagalan spesifik
+    //     }
+    //     notifyListeners(); // Update UI setelah setiap tipe data
+    // }
 
-    await _sync('outlet');
-    if (_syncProcessStatus == SyncStatus.error) { notifyListeners(); return; } // Stop jika ada error
+    // --- PENGGANTI DENGAN SATU FUNGSI REKURSIF UTAMA ---
+    Map<String, int> initialOffsets = {
+      'outlet': 0, // Mulai dari 0 karena tabel sudah di-clear untuk area ini
+      'product': _localProductCount, // Gunakan count yang ada jika produk tidak di-clear per area
+      'kecamatan': 0,
+      'kelurahan': 0,
+    };
 
-    await _sync('product');
-    if (_syncProcessStatus == SyncStatus.error) { notifyListeners(); return; }
+    bool syncSuccess = await _syncAllDataRecursively(initialOffsets);
 
-    await _sync('kecamatan');
-    if (_syncProcessStatus == SyncStatus.error) { notifyListeners(); return; }
-
-    await _sync('kelurahan');
-    if (_syncProcessStatus == SyncStatus.error) { notifyListeners(); return; }
-
-
-    if (_syncProcessStatus != SyncStatus.error) { // Jika tidak ada error selama proses
+    if (syncSuccess) {
       await _saveLastSyncTime();
       _successMessage = "Proses sinkronisasi selesai.";
       _syncProcessStatus = SyncStatus.success;
+    } else {
+      // _errorMessage sudah di-set oleh _syncAllDataRecursively jika ada error
+      // Pastikan status error jika sync gagal dan belum ada pesan error spesifik
+      if (_errorMessage.isEmpty) {
+        _errorMessage = "Sinkronisasi gagal karena alasan yang tidak diketahui.";
+      }
+      _syncProcessStatus = SyncStatus.error;
     }
     notifyListeners();
   }
 
+  // Fungsi rekursif yang lama, bisa dihapus atau dikomentari jika menggunakan _syncAllDataRecursively
+  /*
   Future<bool> _syncDataTypeRecursive(String type, int currentOffsetForType) async {
     if (_selectedArea == null) return false;
     if (_syncProcessStatus == SyncStatus.error) return false; // Hentikan jika ada error global
@@ -366,6 +393,130 @@ class SyncProvider with ChangeNotifier {
       _errorMessage = 'Error sinkronisasi $type (Batch): $e';
       _syncProcessStatus = SyncStatus.error;
       notifyListeners();
+      return false;
+    }
+  }
+  */
+
+  // Fungsi rekursif baru yang menangani semua tipe data sekaligus
+  Future<bool> _syncAllDataRecursively(Map<String, int> currentOffsets) async {
+    if (_selectedArea == null) { // Seharusnya sudah dicek di startSync
+      _errorMessage = "Area belum dipilih untuk sinkronisasi.";
+      _syncProcessStatus = SyncStatus.error;
+      // notifyListeners(); // startSync akan memanggil notifyListeners
+      return false;
+    }
+    // Hentikan jika sudah ada error dari iterasi sebelumnya atau proses lain
+    if (_syncProcessStatus == SyncStatus.error && _errorMessage.isNotEmpty) {
+        return false;
+    }
+
+    Map<String, dynamic> requestBody = {
+      "offset_outlet": currentOffsets['outlet'],
+      "offset_product": currentOffsets['product'],
+      "offset_kecamatan": currentOffsets['kecamatan'],
+      "offset_kelurahan": currentOffsets['kelurahan'],
+      "id_area": int.parse(_selectedArea!.idArea),
+      "id_principle": _idPrinciple
+    };
+
+    print("[SyncProvider] Requesting API with offsets: $requestBody");
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseApiUrl}/api/sync'), // Pastikan URL benar
+        headers: Header.headpos(), // Pastikan Header.headpos() ada dan mengembalikan header yang benar
+        body: json.encode(requestBody),
+      );
+
+      print("[SyncProvider] API Response Code: ${response.statusCode}");
+      // print("[SyncProvider] API Response Body: ${response.body}"); // Hati-hati jika body besar
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (_prefs == null) _prefs = await SharedPreferences.getInstance();
+
+        // Selalu update total counts dari API jika ada
+        _totalOutletApiCount = data['total_all_outlet'] ?? _totalOutletApiCount;
+        _totalProductApiCount = data['total_all_product'] ?? _totalProductApiCount;
+        _totalKecamatanApiCount = data['total_all_kecamatan'] ?? _totalKecamatanApiCount;
+        _totalKelurahanApiCount = data['total_all_kelurahan'] ?? _totalKelurahanApiCount;
+
+        await _prefs!.setInt('totalOutlet_${_selectedArea!.idArea}', _totalOutletApiCount);
+        await _prefs!.setInt('totalProduct_${_idPrinciple}', _totalProductApiCount);
+        await _prefs!.setInt('totalKecamatan_${_selectedArea!.idArea}', _totalKecamatanApiCount);
+        await _prefs!.setInt('totalKelurahan_${_selectedArea!.idArea}', _totalKelurahanApiCount);
+        
+        bool anyDataReceivedInThisBatch = false;
+
+        if (data['outlet'] != null && (data['outlet'] as List).isNotEmpty) {
+          List<OutletModel> items = (data['outlet'] as List).map((o) => OutletModel.fromJson(o)).toList();
+          await _dbHelper.bulkInsertOutlets(items);
+          _localOutletCount += items.length; // Tambahkan jumlah item yang baru diterima
+          currentOffsets['outlet'] = _localOutletCount; // Update offset untuk panggilan berikutnya
+          anyDataReceivedInThisBatch = true;
+          print("[SyncProvider] Synced ${items.length} outlets. New local count: $_localOutletCount");
+        }
+
+        if (data['product'] != null && (data['product'] as List).isNotEmpty) {
+          List<ProductModel> items = (data['product'] as List).map((p) => ProductModel.fromJson(p)).toList();
+          await _dbHelper.bulkInsertProducts(items);
+          _localProductCount += items.length;
+          currentOffsets['product'] = _localProductCount;
+          anyDataReceivedInThisBatch = true;
+          print("[SyncProvider] Synced ${items.length} products. New local count: $_localProductCount");
+        }
+
+        if (data['kecamatan'] != null && (data['kecamatan'] as List).isNotEmpty) {
+          List<KecamatanModel> items = (data['kecamatan'] as List).map((k) => KecamatanModel.fromJson(k)).toList();
+          await _dbHelper.bulkInsertKecamatans(items);
+          _localKecamatanCount += items.length;
+          currentOffsets['kecamatan'] = _localKecamatanCount;
+          anyDataReceivedInThisBatch = true;
+          print("[SyncProvider] Synced ${items.length} kecamatans. New local count: $_localKecamatanCount");
+        }
+
+        if (data['kelurahan'] != null && (data['kelurahan'] as List).isNotEmpty) {
+          List<KelurahanModel> items = (data['kelurahan'] as List).map((l) => KelurahanModel.fromJson(l)).toList();
+          await _dbHelper.bulkInsertKelurahans(items);
+          _localKelurahanCount += items.length;
+          currentOffsets['kelurahan'] = _localKelurahanCount;
+          anyDataReceivedInThisBatch = true;
+          print("[SyncProvider] Synced ${items.length} kelurahans. New local count: $_localKelurahanCount");
+        }
+        
+        _updateProgressUI();
+        notifyListeners();
+
+        bool moreDataExpected = (_localOutletCount < _totalOutletApiCount) ||
+                                (_localProductCount < _totalProductApiCount) ||
+                                (_localKecamatanCount < _totalKecamatanApiCount) ||
+                                (_localKelurahanCount < _totalKelurahanApiCount);
+
+        if (anyDataReceivedInThisBatch && moreDataExpected) {
+          print("[SyncProvider] More data expected. Calling API again with new offsets: $currentOffsets");
+          return await _syncAllDataRecursively(currentOffsets);
+        } else {
+          if (!anyDataReceivedInThisBatch && moreDataExpected) {
+              print("[SyncProvider] WARNING: No data received in this batch, but more data is expected. Stopping to prevent infinite loop. Check API response and local counts. Totals: Outlets(${_totalOutletApiCount}), Products(${_totalProductApiCount}), etc.");
+              _errorMessage = "Sinkronisasi berhenti: API tidak mengirim data baru meskipun data lokal (${_localOutletCount}/${_totalOutletApiCount} outlets, dll.) belum lengkap.";
+              _syncProcessStatus = SyncStatus.error;
+              // notifyListeners(); // Akan dipanggil oleh startSync
+              return false; 
+          }
+          print("[SyncProvider] Sync completed for this batch or all data synced.");
+          return true;
+        }
+      } else {
+        _errorMessage = 'Gagal sinkronisasi (API Error): ${response.statusCode} - ${response.body}';
+        _syncProcessStatus = SyncStatus.error;
+        // notifyListeners(); // Akan dipanggil oleh startSync
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Error saat sinkronisasi: $e';
+      _syncProcessStatus = SyncStatus.error;
+      // notifyListeners(); // Akan dipanggil oleh startSync
       return false;
     }
   }

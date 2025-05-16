@@ -49,6 +49,8 @@ class ApiConstants {
   // Tambahkan endpoint Promo Audit
   static const String promoAudit = '/api/promo-audit';
 
+  static const String priceMonitoringCreateMultiple = '/api/price_monitoring/create_multiple';
+
 }
 
 class Header {

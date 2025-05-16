@@ -1,21 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:impact_app/screens/product/activation_screen.dart';
-import 'package:impact_app/screens/product/out_of_stock_screen.dart';
-import 'package:impact_app/screens/product/posm_screen.dart';
-import 'package:impact_app/screens/product/price_monitoring_screen.dart';
+import 'package:impact_app/screens/product/activation/activation_screen.dart';
+import 'package:impact_app/screens/product/oos/out_of_stock_screen.dart';
+import 'package:impact_app/screens/product/posm/posm_screen.dart';
+import 'package:impact_app/screens/product/price_monitoring/price_monitoring_screen.dart';
 import 'package:impact_app/screens/product/promo_audit_list_screen.dart';
-import 'package:impact_app/screens/product/sampling_konsumen_list_screen.dart';
 import 'package:impact_app/screens/product/sampling_konsumen_screen.dart';
 import '../../api/api_services.dart';
 import '../../models/store_model.dart';
-import '../../models/sales_print_out_model.dart';
 import 'sales_print_out/sales_print_out_screen.dart';
 import 'open_ending/open_ending_screen.dart'; // Added import for OpenEndingScreen
-import '../../utils/session_manager.dart';
 import '../../utils/logger.dart';
 import '../../themes/app_colors.dart';
-import 'package:intl/intl.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({Key? key}) : super(key: key);
@@ -155,10 +151,10 @@ class _SalesScreenState extends State<SalesScreen> {
         'icon': Icons.inventory, 
         'onTap': () => _navigateToScreen((storeId, visitId) => OpenEndingScreen(storeId: storeId, visitId: visitId))
       },
-      {'title': 'Activation', 'icon': Icons.check, 'onTap': () => _navigateToScreen((storeId, visitId) => ActivationScreen(store: Store()))},
+      {'title': 'Activation', 'icon': Icons.check, 'onTap': () => _navigateToScreen((storeId, visitId) => ActivationScreen())},
       {'title': 'Out Of Stock', 'icon': Icons.warehouse, 'onTap': () => _navigateToScreen((storeId, visitId) => OutOfStockScreen(storeId: storeId, visitId: visitId))},
-      {'title': 'Planogram', 'icon': Icons.view_module, 'onTap': () => _navigateToScreen((storeId, visitId) => ActivationScreen(store: Store()))},
-      {'title': 'Price Monitoring', 'icon': Icons.attach_money, 'onTap': () => _navigateToScreen((storeId, visitId) => PriceMonitoringScreen(storeId: storeId, visitId: visitId))},
+      {'title': 'Planogram', 'icon': Icons.view_module, 'onTap': () => _navigateToScreen((storeId, visitId) => ActivationScreen())},
+      {'title': 'Price Monitoring', 'icon': Icons.attach_money, 'onTap': () => _navigateToScreen((storeId, visitId) => PriceMonitoringScreen())},
       {'title': 'Competitor', 'icon': Icons.people, 'onTap': () => _navigateToScreen((storeId, visitId) => PosmScreen(storeId: storeId, visitId: visitId))},
       {'title': 'POSM', 'icon': Icons.shopping_cart, 'onTap': () => _navigateToScreen((storeId, visitId) => PosmScreen(storeId: storeId, visitId: visitId))},
       {'title': 'Survey', 'icon': Icons.fact_check, 'onTap': () {}},

@@ -8,6 +8,7 @@ import 'package:impact_app/models/store_model.dart';
 import 'package:impact_app/models/product_model.dart';
 import 'package:impact_app/utils/logger.dart';
 import 'package:impact_app/utils/session_manager.dart';
+import 'package:intl/intl.dart';
 
 class ApiService {
   final ApiClient _client = ApiClient();
@@ -91,9 +92,13 @@ class ApiService {
 ) async {
     try {
         _logger.d(_tag, 'Check-in to store: $storeId');
+        final String currentDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        final String currentTime = DateFormat('HH:mm:ss').format(DateTime.now());
         
         Map<String, String> data = {
           'store_id': storeId,
+          'date': currentDate,
+          'time': currentTime,
           'outlet': outlet,
           'latitude': latitude.toString(),
           'longitude': longitude.toString(),

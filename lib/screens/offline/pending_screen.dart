@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:impact_app/database/database_helper.dart';
+import 'package:impact_app/screens/product/activation/activation_offline_list_screen.dart';
+import 'package:impact_app/screens/product/oos/model/oos_item_model.dart';
+import 'package:impact_app/screens/product/oos/oos_offline_list_screen.dart';
+import 'package:impact_app/screens/product/open_ending/open_ending_offline_list_screen.dart';
+import 'package:impact_app/screens/product/posm/posm_offline_list_screen.dart';
+import 'package:impact_app/screens/product/price_monitoring/price_monitoring_offline_list_screen.dart';
 import 'package:impact_app/screens/product/sales_print_out/sales_print_out_offline_list_screen.dart';
-import 'package:impact_app/screens/product/sales_print_out/sales_print_out_screen.dart';
 
 class PendingScreen extends StatefulWidget {
   
@@ -26,23 +31,47 @@ class _PendingScreenState extends State<PendingScreen> {
     final List<Map<String, dynamic>> pendingData = [
       {"icon": Icons.check, "count": 0, "title": "Data Absen CI"},
       {"icon": Icons.check, "count": 0, "title": "Data Absen CO"},
-      {"icon": Icons.inventory, "count": 0, "title": "Open Ending"},
-      {"icon": Icons.storefront, "count": 0, "title": "POSM"},
-      {"icon": Icons.inventory, "count": 0, "title": "Out of Stock"},
-      {"icon": Icons.check, "count": 0, "title": "Activation"},
+      
       {"icon": Icons.fact_check, "count": 0, "title": "Survey"},
       {"icon": Icons.storefront, "count": 0, "title": "Planogram"},
-      {"icon": Icons.attach_money, "count": 0, "title": "Price Monitoring"},
       {"icon": Icons.groups, "count": 0, "title": "Competitor"},
       {"icon": Icons.inventory_2, "count": 0, "title": "Availability"},
       {"icon": Icons.check, "count": 0, "title": "Sampling Konsumen"},
       {"icon": Icons.monetization_on, "count": 0, "title": "Promo Audit"},
     ];
 
-    final List<Map<String, dynamic>> rawData = await DatabaseHelper.instance.getAllSalesPrintOuts();
+    final List<Map<String, dynamic>> rawDataSPO = await DatabaseHelper.instance.getAllSalesPrintOuts();
+    final List<Map<String, dynamic>> rawDataOpenEdning = await DatabaseHelper.instance.getAllOpenEndingData();
+    final List<Map<String, dynamic>> rawDataPOSM = await DatabaseHelper.instance.getAllUnsyncedPosmEntries();
+    final List<OOSItem> rawDataOOS = await DatabaseHelper.instance.getUnsyncedOOSItems();
+    final List<Map<String, dynamic>> rawDataActivation = await DatabaseHelper.instance.getUnsyncedActivationEntries();
+    final List<Map<String, dynamic>> rawDataPriceM = await DatabaseHelper.instance.getUnsyncedPriceMonitoringEntries();
+    
     pendingData.add(
-      {"icon": Icons.print, "count": rawData.length, "title": "Sales Print Out"},
+      {"icon": Icons.print, "count": rawDataSPO.length, "title": "Sales Print Out"},
     );
+
+    pendingData.add(
+      {"icon": Icons.inventory, "count": rawDataOpenEdning.length, "title": "Open Ending"},
+    );
+
+    pendingData.add(
+      {"icon": Icons.storefront, "count": rawDataPOSM.length, "title": "POSM"},
+    );
+
+    pendingData.add(
+      {"icon": Icons.inventory, "count": rawDataOOS.length, "title": "Out of Stock"},
+    );
+
+    pendingData.add(
+      {"icon": Icons.campaign, "count": rawDataActivation.length, "title": "Activation"},
+    );
+
+    pendingData.add(
+      {"icon": Icons.attach_money, "count": rawDataPriceM.length, "title": "Price Monitoring"},
+    );
+
+
 
     setState(() {
       this.pendingData = pendingData;
@@ -58,7 +87,7 @@ class _PendingScreenState extends State<PendingScreen> {
 
       switch (title) {
         case "Sales Print Out":
-          
+        
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -68,16 +97,52 @@ class _PendingScreenState extends State<PendingScreen> {
             getDataPending();
           });
           break;
-        case "Data Absen CO":
-          // routeName = '/pending_absen_co_detail';
+        case "Open Ending":
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OpenEndingOfflineListScreen(),
+            ),
+          ).then((value) {
+            getDataPending();
+          });
           break;
-        case "Sales Print Out":
-          // routeName = '/pending_sales_print_out_detail';
+        case "POSM":
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PosmOfflineListScreen(),
+            ),
+          ).then((value) {
+            getDataPending();
+          });
           break;
-        // Tambahkan case untuk setiap title lainnya
-        // case "Open Ending":
-        //   routeName = '/pending_open_ending_detail';
-        //   break;
+
+          case "Out of Stock":
+          Navigator.push(
+            context,
+          MaterialPageRoute(builder: (context) => const OosOfflineListScreen()),
+          ).then((value) {
+            getDataPending();
+          });
+          break;
+        case "Activation":
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ActivationOfflineListScreen()),
+          ).then((value) {
+            getDataPending();
+          });
+          break;
+        case "Price Monitoring":
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PriceMonitoringOfflineListScreen()),
+          ).then((value) {
+            getDataPending();
+          });
+          break;
+       
         default:
           message = 'Halaman detail untuk "$title" belum diimplementasikan.';
       }
