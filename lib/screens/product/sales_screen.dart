@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:impact_app/screens/product/activation/activation_screen.dart';
+import 'package:impact_app/screens/product/availability/availability_screen.dart';
+import 'package:impact_app/screens/product/competitor/competitor_screen.dart';
 import 'package:impact_app/screens/product/oos/out_of_stock_screen.dart';
+import 'package:impact_app/screens/product/planogram/planogram_screen.dart';
 import 'package:impact_app/screens/product/posm/posm_screen.dart';
 import 'package:impact_app/screens/product/price_monitoring/price_monitoring_screen.dart';
 import 'package:impact_app/screens/product/promo_audit_list_screen.dart';
-import 'package:impact_app/screens/product/sampling_konsumen_screen.dart';
+import 'package:impact_app/screens/product/sampling_konsument/sampling_konsumen_screen.dart';
+import 'package:impact_app/screens/product/survey/survey_screen.dart';
 import '../../api/api_services.dart';
 import '../../models/store_model.dart';
 import 'sales_print_out/sales_print_out_screen.dart';
@@ -153,14 +157,15 @@ class _SalesScreenState extends State<SalesScreen> {
       },
       {'title': 'Activation', 'icon': Icons.check, 'onTap': () => _navigateToScreen((storeId, visitId) => ActivationScreen())},
       {'title': 'Out Of Stock', 'icon': Icons.warehouse, 'onTap': () => _navigateToScreen((storeId, visitId) => OutOfStockScreen(storeId: storeId, visitId: visitId))},
-      {'title': 'Planogram', 'icon': Icons.view_module, 'onTap': () => _navigateToScreen((storeId, visitId) => ActivationScreen())},
+      {'title': 'Planogram', 'icon': Icons.view_module, 'onTap': () => _navigateToScreen((storeId, visitId) => PlanogramScreen())},
       {'title': 'Price Monitoring', 'icon': Icons.attach_money, 'onTap': () => _navigateToScreen((storeId, visitId) => PriceMonitoringScreen())},
-      {'title': 'Competitor', 'icon': Icons.people, 'onTap': () => _navigateToScreen((storeId, visitId) => PosmScreen(storeId: storeId, visitId: visitId))},
+      {'title': 'Competitor', 'icon': Icons.people, 'onTap': () => _navigateToScreen((storeId, visitId) => CompetitorScreen())},
       {'title': 'POSM', 'icon': Icons.shopping_cart, 'onTap': () => _navigateToScreen((storeId, visitId) => PosmScreen(storeId: storeId, visitId: visitId))},
-      {'title': 'Survey', 'icon': Icons.fact_check, 'onTap': () {}},
-      {'title': 'Sampling Konsumen', 'icon': Icons.checklist, 'onTap': ()  => _navigateToScreen((storeId, visitId) => SamplingKonsumenScreen(storeId: storeId, visitId: visitId))},
+      {'title': 'Survey', 'icon': Icons.fact_check, 'onTap': () => _navigateToScreen((storeId, visitId) => SurveyScreen(typeSurvey: 'default'))}, 
+      {'title': 'Sampling Konsumen', 'icon': Icons.checklist, 'onTap': ()  => _navigateToScreen((storeId, visitId) => SamplingKonsumenScreen())},
       {'title': 'Promo Audit', 'icon': Icons.assignment_turned_in, 'onTap': () => _navigateToScreen((storeId, visitId) => PromoAuditListScreen())},
       {'title': 'Produk Listing', 'icon': Icons.list, 'onTap': () {}},
+      {'title': 'Availability', 'icon': Icons.list, 'onTap': () => _navigateToScreen((storeId, visitId) => AvailabilityScreen(storeId: storeId, visitId: visitId))},
     ];
     return Scaffold(
       appBar: AppBar(

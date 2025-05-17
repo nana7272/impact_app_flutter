@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:impact_app/database/database_helper.dart';
 import 'package:impact_app/screens/product/activation/activation_offline_list_screen.dart';
+import 'package:impact_app/screens/product/availability/availability_offline_list_screen.dart';
+import 'package:impact_app/screens/product/competitor/competitor_offline_list_screen.dart';
 import 'package:impact_app/screens/product/oos/model/oos_item_model.dart';
 import 'package:impact_app/screens/product/oos/oos_offline_list_screen.dart';
 import 'package:impact_app/screens/product/open_ending/open_ending_offline_list_screen.dart';
+import 'package:impact_app/screens/product/planogram/planogram_offline_list_screen.dart';
 import 'package:impact_app/screens/product/posm/posm_offline_list_screen.dart';
 import 'package:impact_app/screens/product/price_monitoring/price_monitoring_offline_list_screen.dart';
 import 'package:impact_app/screens/product/sales_print_out/sales_print_out_offline_list_screen.dart';
+import 'package:impact_app/screens/product/sampling_konsument/sampling_konsumen_offline_list_screen.dart';
+import 'package:impact_app/screens/product/survey/survey_offline_list_screen.dart';
 
 class PendingScreen extends StatefulWidget {
   
@@ -31,12 +36,6 @@ class _PendingScreenState extends State<PendingScreen> {
     final List<Map<String, dynamic>> pendingData = [
       {"icon": Icons.check, "count": 0, "title": "Data Absen CI"},
       {"icon": Icons.check, "count": 0, "title": "Data Absen CO"},
-      
-      {"icon": Icons.fact_check, "count": 0, "title": "Survey"},
-      {"icon": Icons.storefront, "count": 0, "title": "Planogram"},
-      {"icon": Icons.groups, "count": 0, "title": "Competitor"},
-      {"icon": Icons.inventory_2, "count": 0, "title": "Availability"},
-      {"icon": Icons.check, "count": 0, "title": "Sampling Konsumen"},
       {"icon": Icons.monetization_on, "count": 0, "title": "Promo Audit"},
     ];
 
@@ -46,6 +45,11 @@ class _PendingScreenState extends State<PendingScreen> {
     final List<OOSItem> rawDataOOS = await DatabaseHelper.instance.getUnsyncedOOSItems();
     final List<Map<String, dynamic>> rawDataActivation = await DatabaseHelper.instance.getUnsyncedActivationEntries();
     final List<Map<String, dynamic>> rawDataPriceM = await DatabaseHelper.instance.getUnsyncedPriceMonitoringEntries();
+    final List<Map<String, dynamic>> rawDataComp = await DatabaseHelper.instance.getUnsyncedPromoActivityEntries();
+    final List<Map<String, dynamic>> rawDataPla = await DatabaseHelper.instance.getUnsyncedPlanogramEntries();
+    final List<Map<String, dynamic>> rawDataSamplingKonsument = await DatabaseHelper.instance.getUnsyncedSamplingKonsumenEntries();
+    final List<Map<String, dynamic>> radDataAvai = await DatabaseHelper.instance.getUnsyncedAvailabilityHeadersWithItems();
+    final List<Map<String, dynamic>> rawdataSurvey = await DatabaseHelper.instance.getUnsyncedSurveyResponses();
     
     pendingData.add(
       {"icon": Icons.print, "count": rawDataSPO.length, "title": "Sales Print Out"},
@@ -71,7 +75,25 @@ class _PendingScreenState extends State<PendingScreen> {
       {"icon": Icons.attach_money, "count": rawDataPriceM.length, "title": "Price Monitoring"},
     );
 
+    pendingData.add(
+      {"icon": Icons.groups, "count": rawDataComp.length, "title": "Competitor"},
+    );
 
+    pendingData.add(
+      {"icon": Icons.storefront, "count": rawDataPla.length, "title": "Planogram"},
+    );
+
+    pendingData.add(
+      {"icon": Icons.check, "count": rawDataSamplingKonsument.length, "title": "Sampling Konsumen"},
+    );
+
+    pendingData.add(
+      {"icon": Icons.inventory_2, "count": radDataAvai.length, "title": "Availability"},
+    );
+
+    pendingData.add(
+      {"icon": Icons.fact_check, "count": rawdataSurvey.length, "title": "Survey"},
+    );
 
     setState(() {
       this.pendingData = pendingData;
@@ -142,6 +164,52 @@ class _PendingScreenState extends State<PendingScreen> {
             getDataPending();
           });
           break;
+
+        case "Competitor":
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CompetitorOfflineListScreen()),
+          ).then((value) {
+            getDataPending();
+          });
+          break;
+
+        case "Planogram":
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PlanogramOfflineListScreen()),
+          ).then((value) {
+            getDataPending();
+          });
+          break;
+        case "Sampling Konsumen":
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SamplingKonsumenOfflineListScreen()),
+          ).then((value) {
+            getDataPending();
+          });
+          break;
+
+          case "Availability":
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AvailabilityOfflineListScreen()),
+          ).then((value) {
+            getDataPending();
+          });
+          break;
+
+          case "Survey":
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SurveyOfflineListScreen()),
+          ).then((value) {
+            getDataPending();
+          });
+          break;
+
+          
        
         default:
           message = 'Halaman detail untuk "$title" belum diimplementasikan.';

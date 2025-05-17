@@ -1,4 +1,5 @@
 // File BARU: /Users/nananurwanda/Documents/SOURCE CODE RAMEZA/rameza_new_templete_flutter/lib/api/activation_api_service.dart
+import 'dart:convert';
 import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:http/http.dart' as http; // Import http
@@ -14,6 +15,28 @@ class ActivationApiService {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   final Logger _logger = Logger();
   final String _tag = "ActivationApiService";
+
+  Future<List<String>> fetchPrograms(String idPrinciple) async {
+    final response = await http.get(Uri.parse('${ApiConstants.baseApiUrl}/api/activation/program/$idPrinciple'));
+    _logger.i("API Fetch Programs", "URL: ${'${ApiConstants.baseApiUrl}/api/activation/program/$idPrinciple'}, Response Code: ${response.statusCode}, Body: ${response.body}");
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      return data.map((item) => item['nama'] as String).toList();
+    } else {
+      throw Exception('Failed to load programs. Status: ${response.statusCode}, Body: ${response.body}');
+    }
+  }
+
+  Future<List<String>> fetchPeriods(String idPrinciple) async {
+    final response = await http.get(Uri.parse('${ApiConstants.baseApiUrl}/api/activation/periode/$idPrinciple'));
+    _logger.i("API Fetch Periods", "URL: ${'${ApiConstants.baseApiUrl}/api/activation/periode/$idPrinciple'}, Response Code: ${response.statusCode}, Body: ${response.body}");
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      return data.map((item) => item['nama'] as String).toList();
+    } else {
+      throw Exception('Failed to load periods. Status: ${response.statusCode}, Body: ${response.body}');
+    }
+  }
 
   Future<bool> submitActivationOnline(List<ActivationEntryModel> entries) async {
     if (entries.isEmpty) return true;
@@ -46,17 +69,28 @@ class ActivationApiService {
       }
 
       if (entry.imageFile != null && entry.imageFile!.existsSync()) {
-        request.files.add(await http.MultipartFile.fromPath(
+
+        if (entry.imageFile?.path == null || entry.imageFile?.path?.isEmpty == true) {
+          request.files.add(http.MultipartFile.fromBytes('image_files[$i]', [], filename: ''));
+        } else {
+          request.files.add(await http.MultipartFile.fromPath(
           'image_files[$i]', // Sesuai API 'image_files[index]'
           entry.imageFile!.path,
         ));
+        }
+
+        
       } else if (entry.imagePath != null && File(entry.imagePath!).existsSync()) {
          // Jika mengirim dari data offline yang hanya punya imagePath
-         request.files.add(await http.MultipartFile.fromPath(
-          'image_files[$i]',
-          entry.imagePath!,
-        ));
-      }
+         if (entry.imagePath?.isEmpty == true) {
+            request.files.add(http.MultipartFile.fromBytes('image_files[$i]', [], filename: ''));
+         } else {
+            request.files.add(await http.MultipartFile.fromPath(
+              'image_files[$i]',
+              entry.imagePath!,
+            ));
+         }
+      }  
     }
     _logger.d(_tag, "Sending ${entries.length} activation entries to API. Fields: ${request.fields.length}, Files: ${request.files.length}");
 

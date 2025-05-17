@@ -1,22 +1,22 @@
 // lib/screens/sampling_konsumen_screen.dart
 import 'package:flutter/material.dart';
-import 'package:impact_app/api/sampling_konsumen_api_service.dart';
+import 'package:impact_app/api/api_constants.dart';
+import 'package:impact_app/screens/product/sampling_konsument/api/sampling_konsumen_api_service.dart';
+import 'package:impact_app/database/database_helper.dart';
 import 'package:impact_app/models/sampling_konsumen_model.dart';
 import 'package:impact_app/models/store_model.dart';
+import 'package:impact_app/models/user_model.dart';
+import 'package:impact_app/screens/setting/model/product_model.dart';
 import 'package:impact_app/themes/app_colors.dart';
+import 'package:impact_app/utils/logger.dart';
 import 'package:impact_app/utils/form_validator.dart';
 import 'package:impact_app/utils/connectivity_utils.dart';
+import 'package:impact_app/utils/session_manager.dart';
+import 'package:intl/intl.dart';
 
 class SamplingKonsumenScreen extends StatefulWidget {
-  final String storeId;
-  final String visitId;
-  final Store? store;
-  
   const SamplingKonsumenScreen({
     Key? key, 
-    required this.storeId, 
-    required this.visitId,
-    this.store,
   }) : super(key: key);
 
   @override
@@ -26,6 +26,8 @@ class SamplingKonsumenScreen extends StatefulWidget {
 class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
   final _formKey = GlobalKey<FormState>();
   final SamplingKonsumenApiService _apiService = SamplingKonsumenApiService();
+  final Logger _logger = Logger();
+  final String _tag = "SamplingKonsumenScreen";
   
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _noHpController = TextEditingController();
@@ -43,11 +45,11 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
   bool _isSearchingSebelumnya = false;
   bool _isSearchingDibeli = false;
   
-  List<ProdukSampling> _produkSebelumnyaResults = [];
-  List<ProdukSampling> _produkYangDibeliResults = [];
+  List<ProductModel> _produkSebelumnyaResults = [];
+  List<ProductModel> _produkYangDibeliResults = [];
   
-  ProdukSampling? _selectedProdukSebelumnya;
-  ProdukSampling? _selectedProdukYangDibeli;
+  ProductModel? _selectedProdukSebelumnya;
+  ProductModel? _selectedProdukYangDibeli;
 
   @override
   void dispose() {
@@ -78,7 +80,7 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
     });
 
     try {
-      final products = await _apiService.searchProduk(keyword);
+      final products = await DatabaseHelper.instance.getProductSearch(query: keyword);
       setState(() {
         _produkSebelumnyaResults = products;
         _isSearchingSebelumnya = false;
@@ -108,7 +110,7 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
     });
 
     try {
-      final products = await _apiService.searchProduk(keyword);
+      final products = await DatabaseHelper.instance.getProductSearch(query: keyword);
       setState(() {
         _produkYangDibeliResults = products;
         _isSearchingDibeli = false;
@@ -124,7 +126,7 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
   }
   
   // Memilih produk sebelumnya
-  void _selectProdukSebelumnya(ProdukSampling produk) {
+  void _selectProdukSebelumnya(ProductModel produk) {
     setState(() {
       _selectedProdukSebelumnya = produk;
       _produkSebelumnyaController.text = produk.nama;
@@ -133,7 +135,7 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
   }
   
   // Memilih produk yang dibeli
-  void _selectProdukYangDibeli(ProdukSampling produk) {
+  void _selectProdukYangDibeli(ProductModel produk) {
     setState(() {
       _selectedProdukYangDibeli = produk;
       _produkYangDibeliController.text = produk.nama;
@@ -155,43 +157,14 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
     setState(() {
       _selectedProdukSebelumnya = null;
       _selectedProdukYangDibeli = null;
+      _formKey.currentState?.reset();
     });
   }
   
   // Validasi form dan persiapan data
-  SamplingKonsumen? _prepareData() {
-    if (!_formKey.currentState!.validate()) {
-      return null;
-    }
-    
-    // Prepare kuantitas
-    int kuantitas = 0;
-    if (_kuantitasController.text.isNotEmpty) {
-      kuantitas = int.tryParse(_kuantitasController.text) ?? 0;
-    }
-    
-    return SamplingKonsumen(
-      storeId: widget.storeId,
-      visitId: widget.visitId,
-      nama: _namaController.text,
-      noHp: _noHpController.text,
-      umur: _umurController.text,
-      alamat: _alamatController.text,
-      email: _emailController.text,
-      produkSebelumnya: _selectedProdukSebelumnya?.id,
-      produkYangDibeli: _selectedProdukYangDibeli?.id,
-      kuantitas: kuantitas,
-      keterangan: _keteranganController.text,
-    );
-  }
   
   // Dialog konfirmasi pengiriman data
   void _showSendDialog() {
-    final samplingData = _prepareData();
-    if (samplingData == null) {
-      return;
-    }
-    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -201,16 +174,16 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _submitDataOffline(samplingData);
+              _submitDataOffline();
             },
-            child: const Text('Offline (Local)'),
+            child: const Text('Offline (Simpan Lokal)'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _submitDataOnline(samplingData);
+              _submitDataOnline();
             },
-            child: const Text('Online (Server)'),
+            child: const Text('Online (Kirim ke Server)'),
           ),
         ],
       ),
@@ -218,7 +191,12 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
   }
   
   // Submit data online
-  Future<void> _submitDataOnline(SamplingKonsumen data) async {
+  Future<void> _submitDataOnline() async {
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mohon lengkapi semua data yang diperlukan.')));
+      return;
+    }
+
     setState(() => _isLoading = true);
     
     // Check internet connection
@@ -231,76 +209,121 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
       return;
     }
     
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-    
-    try {
-      bool success = await _apiService.submitSamplingKonsumen(data);
-      
-      // Close loading dialog
-      Navigator.pop(context);
-      
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data berhasil dikirim ke server')),
-        );
-        _resetForm();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal mengirim data ke server')),
-        );
-      }
-    } catch (e) {
-      // Close loading dialog
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(content: Row(children: [CircularProgressIndicator(), SizedBox(width: 20), Text("Mengirim data...")])),
       );
     }
     
-    setState(() => _isLoading = false);
+    try {
+      final user = await SessionManager().getCurrentUser();
+      final store = await SessionManager().getStoreData();
+
+      if (user == null || user.idLogin == null || store == null || store.idOutlet == null) {
+        throw Exception("Data user atau toko tidak lengkap.");
+      }
+
+      final data = SamplingKonsumenModel(
+        nama: _namaController.text,
+        alamat: _alamatController.text,
+        noHp: _noHpController.text,
+        umur: int.tryParse(_umurController.text) ?? 0,
+        email: _emailController.text.isEmpty ? null : _emailController.text,
+        idOutlet: int.tryParse(store.idOutlet!) ?? 0,
+        sender: int.tryParse(user.idLogin!) ?? 0,
+        idProduct: int.tryParse(_selectedProdukYangDibeli!.idProduk!) ?? 0,
+        idProductPrev: _selectedProdukSebelumnya != null ? int.tryParse(_selectedProdukSebelumnya!.idProduk!) : null,
+        qlt: int.tryParse(_kuantitasController.text) ?? 0,
+        keterangan: _keteranganController.text.isEmpty ? null : _keteranganController.text,
+      );
+
+      bool success = await _apiService.submitSamplingKonsumen(data);
+      if(mounted) Navigator.pop(context); // Close loading dialog
+
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data berhasil dikirim ke server')));
+          _resetForm();
+          // Optionally pop screen if submission means task is done
+          Navigator.pop(context); 
+        }
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal mengirim data ke server')));
+      }
+    } catch (e) {
+      _logger.e(_tag, "Error sending online: $e");
+      if(mounted) Navigator.pop(context); // Close loading dialog
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
   
   // Submit data offline
-  Future<void> _submitDataOffline(SamplingKonsumen data) async {
+  Future<void> _submitDataOffline() async {
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mohon lengkapi semua data yang diperlukan.')));
+      return;
+    }
+
     setState(() => _isLoading = true);
     
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-    
-    try {
-      bool success = await _apiService.saveSamplingKonsumenOffline(data);
-      
-      // Close loading dialog
-      Navigator.pop(context);
-      
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data berhasil disimpan secara lokal')),
-        );
-        _resetForm();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal menyimpan data secara lokal')),
-        );
-      }
-    } catch (e) {
-      // Close loading dialog
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(content: Row(children: [CircularProgressIndicator(), SizedBox(width: 20), Text("Menyimpan data...")])),
       );
     }
     
-    setState(() => _isLoading = false);
+    try {
+      final user = await SessionManager().getCurrentUser();
+      final store = await SessionManager().getStoreData();
+
+      if (user == null || user.idLogin == null || store == null || store.idOutlet == null) {
+        throw Exception("Data user atau toko tidak lengkap.");
+      }
+
+      final Map<String, dynamic> dataToSave = {
+        'id_user': user.idLogin,
+        'id_outlet': store.idOutlet,
+        'outlet_name': store.nama,
+        'nama_konsumen': _namaController.text,
+        'alamat_konsumen': _alamatController.text,
+        'no_hp_konsumen': _noHpController.text,
+        'umur_konsumen': int.tryParse(_umurController.text) ?? 0,
+        'email_konsumen': _emailController.text.isEmpty ? null : _emailController.text,
+        'id_product_dibeli': _selectedProdukYangDibeli!.idProduk,
+        'nama_product_dibeli': _selectedProdukYangDibeli!.nama,
+        'id_product_sebelumnya': _selectedProdukSebelumnya?.idProduk,
+        'nama_product_sebelumnya': _selectedProdukSebelumnya?.nama,
+        'kuantitas': int.tryParse(_kuantitasController.text) ?? 0,
+        'keterangan': _keteranganController.text.isEmpty ? null : _keteranganController.text,
+        'tgl_submission': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      };
+
+      bool success = await _apiService.saveSamplingKonsumenOffline(dataToSave);
+      if(mounted) Navigator.pop(context); // Close loading dialog
+
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data berhasil disimpan secara lokal')));
+          _resetForm();
+          // Optionally pop screen
+          Navigator.pop(context);
+        }
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal menyimpan data secara lokal')));
+      }
+    } catch (e) {
+      _logger.e(_tag, "Error saving offline: $e");
+      if(mounted) Navigator.pop(context); // Close loading dialog
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -542,25 +565,6 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
                     maxLines: 3,
                   ),
                   const SizedBox(height: 32),
-                  
-                  // Submit button
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 80), // Give space for the FAB
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _showSendDialog,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        child: const Text(
-                          'SIMPAN',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -571,6 +575,7 @@ class _SamplingKonsumenScreenState extends State<SamplingKonsumenScreen> {
               right: 16,
               child: FloatingActionButton(
                 onPressed: _isLoading ? null : _showSendDialog,
+                heroTag: 'sampling_konsumen_fab', // Tambahkan heroTag unik
                 backgroundColor: AppColors.primary,
                 child: const Icon(Icons.send),
               ),

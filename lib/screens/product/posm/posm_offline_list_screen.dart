@@ -274,6 +274,7 @@ class _PosmOfflineListScreenState extends State<PosmOfflineListScreen> {
       floatingActionButton: _offlinePosmGroups.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _isSyncing ? null : _syncData,
+              heroTag: 'posm_offline_list_fab', // Unique heroTag
               icon: _isSyncing
                   ? Container(width: 24, height: 24, padding: const EdgeInsets.all(2.0), child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
                   : const Icon(Icons.cloud_upload_outlined),

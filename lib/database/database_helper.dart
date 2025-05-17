@@ -22,7 +22,7 @@ class DatabaseHelper {
     String path = join(documentsDirectory.path, 'app_database.db');
     return await openDatabase(
       path,
-      version: 17, // Naikkan versi karena ada tabel baru price_monitoring_entries
+      version: 22, // Naikkan versi karena ada tabel baru survey_responses
       onCreate: _onCreate,
       onUpgrade: _onUpgrade, // << TAMBAHKAN INI
     );
@@ -30,6 +30,124 @@ class DatabaseHelper {
 
   // Tambahkan method _onUpgrade
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 22) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS survey_responses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          submission_group_id TEXT,
+          id_user TEXT,
+          id_principle TEXT,
+          id_outlet TEXT,
+          outlet_name TEXT,
+          id_soal TEXT,
+          pertanyaan TEXT,
+          type_jawaban TEXT,
+          id_jawaban_key TEXT,
+          jawaban_text TEXT,
+          value_lainnya TEXT,
+          image_path TEXT,
+          tgl_submission TEXT,
+          is_synced INTEGER DEFAULT 0
+        )
+      ''');
+      print("Table survey_responses created or verified on upgrade.");
+    }
+    if (oldVersion < 21) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS availability_headers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id_user TEXT,
+          id_outlet TEXT,
+          outlet_name TEXT,
+          image_before_path TEXT,
+          image_after_path TEXT,
+          tgl_submission TEXT,
+          is_synced INTEGER DEFAULT 0
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS availability_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          header_id INTEGER,
+          id_product TEXT,
+          product_name TEXT,
+          stock_gudang INTEGER,
+          stock_display INTEGER,
+          total_stock INTEGER,
+          FOREIGN KEY (header_id) REFERENCES availability_headers(id) ON DELETE CASCADE
+        )
+      ''');
+      print("Tables availability_headers and availability_items created or verified on upgrade.");
+    }
+    if (oldVersion < 20) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS sampling_konsumen_entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id_user TEXT,
+          id_outlet TEXT,
+          outlet_name TEXT,
+          nama_konsumen TEXT,
+          alamat_konsumen TEXT,
+          no_hp_konsumen TEXT,
+          umur_konsumen INTEGER,
+          email_konsumen TEXT,
+          id_product_dibeli TEXT,
+          nama_product_dibeli TEXT,
+          id_product_sebelumnya TEXT,
+          nama_product_sebelumnya TEXT,
+          kuantitas INTEGER,
+          keterangan TEXT,
+          tgl_submission TEXT,
+          is_synced INTEGER DEFAULT 0
+        )
+      ''');
+      print("Table sampling_konsumen_entries created or verified on upgrade.");
+    }
+    if (oldVersion < 19) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS planogram_entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id_user TEXT,
+          id_outlet TEXT,
+          outlet_name TEXT,
+          ket_before TEXT,
+          tgl_submission TEXT,
+          display_type TEXT,
+          display_issue TEXT,
+          ket_after TEXT,
+          image_before_path TEXT,
+          image_after_path TEXT,
+          submission_group_id TEXT,
+          is_synced INTEGER DEFAULT 0
+        )
+      ''');
+      print("Table planogram_entries created or verified on upgrade.");
+    }
+    if (oldVersion < 18) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS promo_activity_entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id_user TEXT,
+          id_outlet TEXT,
+          outlet_name TEXT,
+          id_principle TEXT,
+          id_product TEXT,
+          nama_produk TEXT,
+          category_product TEXT,
+          harga_rbp TEXT,
+          harga_cbp TEXT,
+          harga_outlet TEXT,
+          promo_type TEXT,
+          mekanisme_promo TEXT,
+          periode TEXT,
+          image_path TEXT,
+          tgl_submission TEXT,
+          submission_group_id TEXT,
+          is_synced INTEGER DEFAULT 0
+        )
+      ''');
+      print("Table promo_activity_entries created or verified on upgrade.");
+    }
     if (oldVersion < 17) {
       await db.execute('''
         CREATE TABLE IF NOT EXISTS price_monitoring_entries (
@@ -287,6 +405,121 @@ class DatabaseHelper {
         ket TEXT,
         sender TEXT,
         tgl TEXT,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+    
+    // Tabel planogram_entries (juga buat di onCreate jika ini instalasi baru)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS planogram_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_user TEXT,
+        id_outlet TEXT,
+        outlet_name TEXT,
+        ket_before TEXT,
+        tgl_submission TEXT,
+        display_type TEXT,
+        display_issue TEXT,
+        ket_after TEXT,
+        image_before_path TEXT,
+        image_after_path TEXT,
+        submission_group_id TEXT,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+
+    // Tabel availability_headers dan availability_items (juga buat di onCreate jika ini instalasi baru)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS availability_headers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_user TEXT,
+        id_outlet TEXT,
+        outlet_name TEXT,
+        image_before_path TEXT,
+        image_after_path TEXT,
+        tgl_submission TEXT,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS availability_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        header_id INTEGER,
+        id_product TEXT,
+        product_name TEXT,
+        stock_gudang INTEGER,
+        stock_display INTEGER,
+        total_stock INTEGER,
+        FOREIGN KEY (header_id) REFERENCES availability_headers(id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Tabel sampling_konsumen_entries (juga buat di onCreate jika ini instalasi baru)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sampling_konsumen_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_user TEXT,
+        id_outlet TEXT,
+        outlet_name TEXT,
+        nama_konsumen TEXT,
+        alamat_konsumen TEXT,
+        no_hp_konsumen TEXT,
+        umur_konsumen INTEGER,
+        email_konsumen TEXT,
+        id_product_dibeli TEXT,
+        nama_product_dibeli TEXT,
+        id_product_sebelumnya TEXT,
+        nama_product_sebelumnya TEXT,
+        kuantitas INTEGER,
+        keterangan TEXT,
+        tgl_submission TEXT,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+
+    // Tabel survey_responses (juga buat di onCreate jika ini instalasi baru)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS survey_responses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        submission_group_id TEXT,
+        id_user TEXT,
+        id_principle TEXT,
+        id_outlet TEXT,
+        outlet_name TEXT,
+        id_soal TEXT,
+        pertanyaan TEXT,
+        type_jawaban TEXT,
+        id_jawaban_key TEXT,
+        jawaban_text TEXT,
+        value_lainnya TEXT,
+        image_path TEXT,
+        tgl_submission TEXT,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+    print("Table survey_responses created or verified on create.");
+
+
+    // Tabel promo_activity_entries (juga buat di onCreate jika ini instalasi baru)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS promo_activity_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_user TEXT,
+        id_outlet TEXT,
+        outlet_name TEXT,
+        id_principle TEXT,
+        id_product TEXT,
+        nama_produk TEXT,
+        category_product TEXT,
+        harga_rbp TEXT,
+        harga_cbp TEXT,
+        harga_outlet TEXT,
+        promo_type TEXT,
+        mekanisme_promo TEXT,
+        periode TEXT,
+        image_path TEXT,
+        tgl_submission TEXT,
+        submission_group_id TEXT,
         is_synced INTEGER DEFAULT 0
       )
     ''');
@@ -651,6 +884,137 @@ class DatabaseHelper {
     await batch.commit(noResult: true);
     print("Deleted ${ids.length} price monitoring entries from local DB.");
   }
+
+  // --- Operasi untuk Promo Activity (Competitor) Entries ---
+  Future<int> insertPromoActivityEntry(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    row['is_synced'] = 0; // Tandai sebagai belum sinkron
+    return await db.insert('promo_activity_entries', row);
+  }
+
+  Future<List<Map<String, dynamic>>> getUnsyncedPromoActivityEntries() async {
+    Database db = await instance.database;
+    // Urutkan berdasarkan submission_group_id untuk memudahkan pengelompokan saat sinkronisasi
+    return await db.query('promo_activity_entries', where: 'is_synced = ?', whereArgs: [0], orderBy: 'submission_group_id ASC, id ASC');
+  }
+
+  Future<void> deletePromoActivityEntriesByIds(List<int> ids) async {
+    if (ids.isEmpty) return;
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int id in ids) {
+      batch.delete('promo_activity_entries', where: 'id = ?', whereArgs: [id]);
+    }
+    await batch.commit(noResult: true);
+    print("Deleted ${ids.length} promo activity entries from local DB.");
+  }
+
+  // --- Operasi untuk Planogram Entries ---
+  Future<int> insertPlanogramEntry(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    row['is_synced'] = 0; // Tandai sebagai belum sinkron
+    return await db.insert('planogram_entries', row);
+  }
+
+  Future<List<Map<String, dynamic>>> getUnsyncedPlanogramEntries() async {
+    Database db = await instance.database;
+    // Urutkan berdasarkan submission_group_id untuk memudahkan pengelompokan saat sinkronisasi
+    return await db.query('planogram_entries', where: 'is_synced = ?', whereArgs: [0], orderBy: 'submission_group_id ASC, id ASC');
+  }
+
+  Future<void> deletePlanogramEntriesByIds(List<int> ids) async {
+    if (ids.isEmpty) return;
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int id in ids) {
+      batch.delete('planogram_entries', where: 'id = ?', whereArgs: [id]);
+    }
+    await batch.commit(noResult: true);
+    print("Deleted ${ids.length} planogram entries from local DB.");
+  }
+
+  // --- Operasi untuk Sampling Konsumen Entries ---
+  Future<int> insertSamplingKonsumenEntry(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    row['is_synced'] = 0; // Tandai sebagai belum sinkron
+    return await db.insert('sampling_konsumen_entries', row);
+  }
+
+  Future<List<Map<String, dynamic>>> getUnsyncedSamplingKonsumenEntries() async {
+    Database db = await instance.database;
+    return await db.query('sampling_konsumen_entries', where: 'is_synced = ?', whereArgs: [0], orderBy: 'tgl_submission DESC, id DESC');
+  }
+
+  Future<void> deleteSamplingKonsumenEntriesByIds(List<int> ids) async {
+    if (ids.isEmpty) return;
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int id in ids) {
+      batch.delete('sampling_konsumen_entries', where: 'id = ?', whereArgs: [id]);
+    }
+    await batch.commit(noResult: true);
+    print("Deleted ${ids.length} sampling konsumen entries from local DB.");
+  }
+
+  // --- Operasi untuk Availability Entries ---
+  Future<int> insertAvailabilityHeader(Map<String, dynamic> headerRow) async {
+    Database db = await instance.database;
+    headerRow['is_synced'] = 0; // Tandai sebagai belum sinkron
+    return await db.insert('availability_headers', headerRow);
+  }
+
+  Future<void> insertAvailabilityItems(int headerId, List<Map<String, dynamic>> itemRows) async {
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (var itemRow in itemRows) {
+      itemRow['header_id'] = headerId;
+      batch.insert('availability_items', itemRow);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<List<Map<String, dynamic>>> getUnsyncedAvailabilityHeadersWithItems() async {
+    Database db = await instance.database;
+    final List<Map<String, dynamic>> headers = await db.query('availability_headers', where: 'is_synced = ?', whereArgs: [0], orderBy: 'tgl_submission DESC, id DESC');
+    List<Map<String, dynamic>> results = [];
+    for (var header in headers) {
+      final List<Map<String, dynamic>> items = await db.query('availability_items', where: 'header_id = ?', whereArgs: [header['id']]);
+      results.add({...header, 'items': items});
+    }
+    return results;
+  }
+
+  Future<void> deleteAvailabilityHeaderAndItems(int headerId) async {
+    Database db = await instance.database;
+    // Karena ON DELETE CASCADE, menghapus header akan menghapus items terkait.
+    await db.delete('availability_headers', where: 'id = ?', whereArgs: [headerId]);
+    print("Deleted availability header ID $headerId and its items from local DB.");
+  }
+
+  // --- Operasi untuk Survey Responses ---
+  Future<int> insertSurveyResponse(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    row['is_synced'] = 0; // Tandai sebagai belum sinkron
+    // tgl_submission should be set before calling this
+    return await db.insert('survey_responses', row);
+  }
+
+  Future<List<Map<String, dynamic>>> getUnsyncedSurveyResponses() async {
+    Database db = await instance.database;
+    return await db.query('survey_responses', where: 'is_synced = ?', whereArgs: [0], orderBy: 'tgl_submission ASC, submission_group_id ASC, id ASC');
+  }
+
+  Future<void> deleteSurveyResponsesByIds(List<int> ids) async {
+    if (ids.isEmpty) return;
+    Database db = await instance.database;
+    Batch batch = db.batch();
+    for (int id in ids) {
+      batch.delete('survey_responses', where: 'id = ?', whereArgs: [id]);
+    }
+    await batch.commit(noResult: true);
+    print("Deleted ${ids.length} survey responses from local DB.");
+  }
+
 
 
 }

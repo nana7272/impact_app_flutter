@@ -73,6 +73,8 @@ class PosmApiService {
           filename: imageFiles[i].path.split('/').last,
         );
         request.files.add(multipartFile);
+      } else {
+        request.files.add(http.MultipartFile.fromBytes('image_files[$i]', [], filename: ''));
       }
     }
 

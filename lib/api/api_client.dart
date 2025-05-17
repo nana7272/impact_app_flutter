@@ -189,7 +189,11 @@ class ApiClient {
         if (filePath.isEmpty) {
           _logger.w(_tag, 'File path is empty. MultipartFile.fromPath will likely fail or use an empty path.');
         }
-        request.files.add(await http.MultipartFile.fromPath('image[]', filePath));
+        if (filePath.isEmpty) {
+          request.files.add(http.MultipartFile.fromBytes('image[]', [], filename: ''));
+        } else {
+          request.files.add(await http.MultipartFile.fromPath('image[]', filePath));
+        }
         _logger.d(_tag, 'File with path "$filePath" added to request.files (or attempt was made).');
         // Jika Anda ingin melihat path asli dari f (sebelum null check), Anda bisa uncomment log di bawah ini
         // _logger.d(_tag, 'Original f?.path for UPLOAD Image: ${f?.path}');

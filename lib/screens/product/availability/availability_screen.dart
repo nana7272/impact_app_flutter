@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:impact_app/database/database_helper.dart';
+import 'package:impact_app/models/store_model.dart';
+import 'package:impact_app/models/user_model.dart';
+import 'package:impact_app/screens/setting/model/product_model.dart';
 import 'dart:io';
-import 'dart:convert';
-import '../../models/product_model.dart';
-import '../../api/api_services.dart';
-import '../../api/api_constants.dart';
-import '../../themes/app_colors.dart';
-import '../../utils/connectivity_utils.dart';
-import '../../widget/search_bar_widget.dart';
+import '../../../utils/connectivity_utils.dart';
+import '../../../utils/logger.dart';
+import '../../../utils/session_manager.dart';
+import 'api/availability_api_service.dart';
+import '../../../widget/search_bar_widget.dart';
 
 class AvailabilityScreen extends StatefulWidget {
   final String storeId;
@@ -27,110 +27,41 @@ class AvailabilityScreen extends StatefulWidget {
 
 class _AvailabilityScreenState extends State<AvailabilityScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final ApiService _apiService = ApiService();
+  final AvailabilityApiService _apiService = AvailabilityApiService();
+  final Logger _logger = Logger();
   
   bool _isLoading = false;
   bool _isSearching = false;
-  List<Product> _searchResults = [];
+  List<ProductModel> _searchResults = [];
   List<ProductAvailability> _productAvailabilityList = [];
   File? _beforeImage;
   File? _afterImage;
+  Store? _currentStore;
 
   @override
   void initState() {
     super.initState();
-    _loadLocalData();
+    _loadStoreData();
+  }
+
+  Future<void> _loadStoreData() async {
+    try {
+      _currentStore = await SessionManager().getStoreData();
+      if (_currentStore == null || _currentStore!.idOutlet != widget.storeId) {
+        // Jika storeId dari argumen berbeda dengan session, mungkin perlu logika tambahan
+        _logger.w("AvailabilityScreen", "Store ID from argument (${widget.storeId}) might differ from session store.");
+      }
+      if(mounted) setState(() {});
+    } catch (e) {
+      _logger.e("AvailabilityScreen", "Error loading store data: $e");
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gagal memuat data toko.")));
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  // Load any saved local data
-  Future<void> _loadLocalData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? savedData = prefs.getString('availability_${widget.storeId}_${widget.visitId}');
-    
-    if (savedData != null) {
-      try {
-        Map<String, dynamic> data = json.decode(savedData);
-        List<dynamic> products = data['products'];
-        
-        setState(() {
-          _productAvailabilityList = products.map((item) {
-            Product product = Product(
-              id: item['id'],
-              code: item['code'],
-              name: item['name'],
-              price: item['price'] != null ? double.parse(item['price'].toString()) : 0,
-              image: item['image'],
-            );
-            
-            return ProductAvailability(
-              product: product,
-              stockGudang: item['stockGudang'] ?? 0,
-              stockDisplay: item['stockDisplay'] ?? 0,
-              totalStock: item['totalStock'] ?? 0,
-              beforeImagePath: item['beforeImagePath'],
-              afterImagePath: item['afterImagePath'],
-              status: _getStatusFromValue(item['statusValue'] ?? 0),
-            );
-          }).toList();
-        });
-      } catch (e) {
-        print('Error loading saved data: $e');
-      }
-    }
-  }
-
-  // Save current data locally
-  Future<void> _saveLocalData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    
-    List<Map<String, dynamic>> productsList = _productAvailabilityList.map((item) {
-      return {
-        'id': item.product.id,
-        'code': item.product.code,
-        'name': item.product.name,
-        'price': item.product.price,
-        'image': item.product.image,
-        'stockGudang': item.stockGudang,
-        'stockDisplay': item.stockDisplay,
-        'totalStock': item.totalStock,
-        'beforeImagePath': item.beforeImagePath,
-        'afterImagePath': item.afterImagePath,
-        'statusValue': _getStatusValue(item.status),
-      };
-    }).toList();
-    
-    Map<String, dynamic> data = {
-      'storeId': widget.storeId,
-      'visitId': widget.visitId,
-      'products': productsList,
-      'timestamp': DateTime.now().toIso8601String(),
-    };
-    
-    await prefs.setString('availability_${widget.storeId}_${widget.visitId}', json.encode(data));
-  }
-
-  int _getStatusValue(ProductStatus status) {
-    switch (status) {
-      case ProductStatus.good: return 1;
-      case ProductStatus.warning: return 2;
-      case ProductStatus.critical: return 3;
-      default: return 0;
-    }
-  }
-
-  ProductStatus _getStatusFromValue(int value) {
-    switch (value) {
-      case 1: return ProductStatus.good;
-      case 2: return ProductStatus.warning;
-      case 3: return ProductStatus.critical;
-      default: return ProductStatus.neutral;
-    }
   }
 
   // Search for products
@@ -149,11 +80,11 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
 
     try {
       // This would be connected to your actual API
-      final products = await _apiService.getProducts();
+      final products = await DatabaseHelper.instance.getProductSearch(query: keyword);
       
       // Filter products based on keyword (simulate search)
       final filteredProducts = products.where((product) => 
-        product.name?.toLowerCase().contains(keyword.toLowerCase()) ?? false).toList();
+        product.nama?.toLowerCase().contains(keyword.toLowerCase()) ?? false).toList();
       
       setState(() {
         _searchResults = filteredProducts;
@@ -170,9 +101,9 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   }
 
   // Add product to the availability list
-  void _addProduct(Product product) {
+  void _addProduct(ProductModel product) {
     // Check if product already exists in the list
-    final existingIndex = _productAvailabilityList.indexWhere((p) => p.product.id == product.id);
+    final existingIndex = _productAvailabilityList.indexWhere((p) => p.product.idProduk == product.idProduk);
     if (existingIndex >= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Product already added')),
@@ -193,8 +124,7 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
       _searchResults = [];
       _searchController.clear();
     });
-    
-    _saveLocalData();
+  
   }
 
   // Update stock values and calculate totals
@@ -203,8 +133,7 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
       _productAvailabilityList[index].stockGudang = value;
       _updateTotalStock(index);
     });
-    
-    _saveLocalData();
+  
   }
 
   void _updateStockDisplay(int index, int value) {
@@ -212,8 +141,6 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
       _productAvailabilityList[index].stockDisplay = value;
       _updateTotalStock(index);
     });
-    
-    _saveLocalData();
   }
 
   void _updateTotalStock(int index) {
@@ -235,20 +162,30 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   }
 
   // Take before/after images
-  Future<void> _takeImage(int index, bool isBefore) async {
+  Future<void> _takeImage(bool isBeforeImage) async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+    final XFile? image = await picker.pickImage(source: ImageSource.camera, imageQuality: 50);
     
     if (image != null) {
       setState(() {
-        if (isBefore) {
-          _productAvailabilityList[index].beforeImagePath = image.path;
+        if (isBeforeImage) {
+          _beforeImage = File(image.path);
         } else {
-          _productAvailabilityList[index].afterImagePath = image.path;
+          _afterImage = File(image.path);
         }
       });
-      
-      _saveLocalData();
+    }
+  }
+
+  void _clearImage(bool isBeforeImage) {
+    if (mounted) {
+      setState(() {
+        if (isBeforeImage) {
+          _beforeImage = null;
+        } else {
+          _afterImage = null;
+        }
+      });
     }
   }
 
@@ -315,12 +252,18 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No products to submit')),
       );
+      setState(() => _isLoading = false);
+      return;
+    }
+    if (_beforeImage == null || _afterImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mohon ambil foto Before dan After.')),
+      );
+      setState(() => _isLoading = false);
       return;
     }
 
     setState(() => _isLoading = true);
-    
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -328,58 +271,79 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
     );
     
     try {
+      final user = await SessionManager().getCurrentUser();
+      if (user == null || user.idLogin == null) {
+        throw Exception("User not logged in.");
+      }
+      if (_currentStore == null || _currentStore!.idOutlet == null) {
+        throw Exception("Store data not available.");
+      }
+
+      List<Map<String, dynamic>> itemsPayload = _productAvailabilityList.map((pa) => {
+        'id_product': pa.product.idProduk,
+        'stock_gudang': pa.stockGudang,
+        'stock_display': pa.stockDisplay,
+        'total_stock': pa.totalStock,
+      }).toList();
+
       if (isOnline) {
-        // Check internet connection
         bool isConnected = await ConnectivityUtils.checkInternetConnection();
-        
         if (!isConnected) {
-          // Close loading dialog
-          Navigator.pop(context);
-          
-          ScaffoldMessenger.of(context).showSnackBar(
+          if(mounted) Navigator.pop(context);
+          if(mounted) ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('No internet connection. Use offline method.')),
           );
-          
-          setState(() => _isLoading = false);
           return;
         }
         
-        // In a real implementation, you would call your API here
-        // For demonstration, we'll just simulate a delay
-        await Future.delayed(const Duration(seconds: 2));
-        
-        // Close loading dialog
-        Navigator.pop(context);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data sent to server successfully')),
+        bool success = await _apiService.submitAvailabilityDataOnline(
+          idUser: user.idLogin!,
+          idOutlet: _currentStore!.idOutlet!,
+          imageBeforeFile: _beforeImage,
+          imageAfterFile: _afterImage,
+          items: itemsPayload,
         );
-        
-        // Clear local data after successful submission
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.remove('availability_${widget.storeId}_${widget.visitId}');
-        
-        // Return to previous screen
-        Navigator.pop(context);
+
+        if(mounted) Navigator.pop(context); // Close loading
+        if (success) {
+          if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data sent to server successfully')));
+          if(mounted) Navigator.pop(context); // Go back
+        } else {
+          if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send data to server.')));
+        }
+
       } else {
-        // Save data locally (already done incrementally)
-        await Future.delayed(const Duration(seconds: 1));
+        Map<String, dynamic> headerData = {
+          'id_user': user.idLogin,
+          'id_outlet': _currentStore!.idOutlet,
+          'outlet_name': _currentStore!.nama,
+          'image_before_path': _beforeImage?.path,
+          'image_after_path': _afterImage?.path,
+          // tgl_submission and is_synced will be handled by ApiService
+        };
+
+        List<Map<String, dynamic>> itemsToSave = _productAvailabilityList.map((pa) => {
+          'id_product': pa.product.idProduk,
+          'product_name': pa.product.nama,
+          'stock_gudang': pa.stockGudang,
+          'stock_display': pa.stockDisplay,
+          'total_stock': pa.totalStock,
+        }).toList();
+
+        bool success = await _apiService.saveAvailabilityDataOffline(headerData, itemsToSave);
         
-        // Close loading dialog
-        Navigator.pop(context);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data saved offline')),
-        );
-        
-        // Return to previous screen
-        Navigator.pop(context);
+        if(mounted) Navigator.pop(context); // Close loading
+        if (success) {
+          if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data saved offline')));
+          if(mounted) Navigator.pop(context); // Go back
+        } else {
+          if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save data offline.')));
+        }
       }
     } catch (e) {
-      // Close loading dialog
-      Navigator.pop(context);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
+      _logger.e("AvailabilityScreen", "Error sending data: $e");
+      if(mounted) Navigator.pop(context); // Close loading
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error sending data: $e')),
       );
     }
@@ -391,7 +355,7 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Availability'),
+        title: Text('Availability - ${_currentStore?.nama ?? widget.storeId}'),
         backgroundColor: Colors.grey[700],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -415,72 +379,7 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
             ),
           ),
 
-          // Display Before/After images at the top
-          if (_productAvailabilityList.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        const Text('Display Before'),
-                        const SizedBox(height: 4),
-                        Container(
-                          height: 100,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: _beforeImage != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    _beforeImage!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  ),
-                                )
-                              : Image.asset(
-                                  'assets/store_placeholder.jpg',
-                                  fit: BoxFit.cover,
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        const Text('Display After'),
-                        const SizedBox(height: 4),
-                        Container(
-                          height: 100,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: _afterImage != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    _afterImage!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  ),
-                                )
-                              : Image.asset(
-                                  'assets/store_placeholder.jpg',
-                                  fit: BoxFit.cover,
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          _buildImagePickers(),
           
           // Search results or product list
           Expanded(
@@ -494,26 +393,12 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
       ),
       floatingActionButton: _productAvailabilityList.isNotEmpty
           ? FloatingActionButton(
+              heroTag: "availability_fab",
               onPressed: _showSendDataDialog,
               backgroundColor: Colors.blue,
               child: const Icon(Icons.send),
             )
           : null,
-      bottomNavigationBar: BottomAppBar(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.list_alt),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: const Icon(Icons.add_chart),
-              onPressed: () {},
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -526,9 +411,9 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
-            leading: product.image != null
+            leading: product.gambar != null
                 ? Image.network(
-                    product.image!,
+                    product.gambar!,
                     width: 50,
                     height: 50,
                     fit: BoxFit.cover,
@@ -536,8 +421,8 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                         const Icon(Icons.inventory_2_outlined, size: 32),
                   )
                 : const Icon(Icons.inventory_2_outlined, size: 32),
-            title: Text(product.name ?? 'Unknown Product'),
-            subtitle: Text('Code: ${product.code}'),
+            title: Text(product.nama ?? 'Unknown Product'),
+            subtitle: Text('Code: ${product.kode}'),
             trailing: IconButton(
               icon: const Icon(Icons.add_circle, color: Colors.green),
               onPressed: () => _addProduct(product),
@@ -563,6 +448,76 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
       },
     );
   }
+
+  Widget _buildImagePickers() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildImagePickerItem(
+            label: 'Foto Display Before',
+            imageFile: _beforeImage,
+            onTap: () => _takeImage(true),
+            onClear: () => _clearImage(true),
+          ),
+          _buildImagePickerItem(
+            label: 'Foto Display After',
+            imageFile: _afterImage,
+            onTap: () => _takeImage(false),
+            onClear: () => _clearImage(false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePickerItem({
+    required String label,
+    File? imageFile,
+    required VoidCallback onTap,
+    required VoidCallback onClear,
+  }) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.4,
+            height: MediaQuery.of(context).size.width * 0.4,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade400),
+            ),
+            child: imageFile != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(7),
+                    child: Image.file(imageFile, fit: BoxFit.cover),
+                  )
+                : const Center(child: Icon(Icons.camera_alt, size: 40, color: Colors.grey)),
+          ),
+        ),
+        if (imageFile != null)
+          TextButton.icon(
+            icon: const Icon(Icons.clear, size: 18, color: Colors.redAccent),
+            label: const Text('Hapus Gambar', style: TextStyle(fontSize: 12, color: Colors.redAccent)),
+            onPressed: onClear,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size(50, 20), // Adjust size to be smaller
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          )
+        else
+          const SizedBox(height: 36), // Placeholder for button height to maintain layout
+      ],
+    );
+  }
+
+
 
   Widget _buildProductCard(int index) {
     final product = _productAvailabilityList[index];
@@ -601,11 +556,11 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                     border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: product.product.image != null
+                  child: product.product.gambar != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            product.product.image!,
+                            product.product.gambar!,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
                                 const Icon(Icons.image_not_supported, size: 40),
@@ -634,7 +589,7 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              product.product.name ?? 'Unknown Product',
+                              product.product.nama ?? 'Unknown Product',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -752,68 +707,6 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
             
             const SizedBox(height: 12),
             
-            // Before/After images
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _takeImage(index, true),
-                    child: Column(
-                      children: [
-                        Container(
-                          height: 80,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: product.beforeImagePath != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    File(product.beforeImagePath!),
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  ),
-                                )
-                              : const Icon(Icons.camera_alt, size: 36, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text('Display Before', style: TextStyle(fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _takeImage(index, false),
-                    child: Column(
-                      children: [
-                        Container(
-                          height: 80,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: product.afterImagePath != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    File(product.afterImagePath!),
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  ),
-                                )
-                              : const Icon(Icons.camera_alt, size: 36, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text('Display After', style: TextStyle(fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
@@ -845,7 +738,7 @@ enum ProductStatus {
 }
 
 class ProductAvailability {
-  final Product product;
+  final ProductModel product;
   int stockGudang;
   int stockDisplay;
   int totalStock;
