@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:impact_app/screens/activity/provider/activity_provider.dart';
 import 'package:impact_app/screens/setting/provider/sync_provider.dart';
 import 'package:impact_app/services/notification_service.dart';
 import 'package:provider/provider.dart';
@@ -33,6 +34,7 @@ void main() async {
     MultiProvider( // Gunakan MultiProvider jika ada banyak provider
       providers: [
         ChangeNotifierProvider(create: (_) => SyncProvider()),
+        ChangeNotifierProvider(create: (_) => ActivityProvider()),
         // Provider lain...
       ],
       child: MyApp(),

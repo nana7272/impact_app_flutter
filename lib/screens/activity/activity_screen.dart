@@ -1,71 +1,159 @@
-// activity_screen.dart
+// screens/activity/activity_screen.dart
 import 'package:flutter/material.dart';
-import 'package:impact_app/screens/activity/api/activity_api_service.dart';
-import 'package:impact_app/screens/activity/model/sales_report.dart';
-import 'package:intl/intl.dart'; // Untuk format tanggal dan angka
+import 'package:impact_app/screens/activity/provider/activity_provider.dart';
+import 'package:impact_app/screens/activity/tabview/activation_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/attendance_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/availability_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/competitor_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/oos_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/open_ending_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/planogram_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/posm_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/price_monitoring_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/sampling_konsumen_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/spo_tab_view.dart';
+import 'package:impact_app/screens/activity/tabview/survey_tab_view.dart';
+import 'package:impact_app/screens/checkin/checin_screen.dart'; // Pastikan path ini benar
+import 'package:impact_app/utils/bottom_menu_handler.dart'; // Pastikan path ini benar
+import 'package:impact_app/widget/custom_navbar_bottom_widget.dart'; // Pastikan path ini benar
+import 'package:provider/provider.dart';
 
-import 'package:impact_app/screens/checkin/checin_screen.dart'; // Pastikan screen ini ada
-import 'package:impact_app/utils/bottom_menu_handler.dart'; // Pastikan util ini ada
-import 'package:impact_app/widget/custom_navbar_bottom_widget.dart'; // Pastikan widget ini ada
-import 'package:impact_app/widget/status_card_widget.dart'; // Pastikan widget ini ada
 
-class ActivityScreen extends StatefulWidget {
+class ActivityScreen extends StatelessWidget {
   const ActivityScreen({super.key});
 
   @override
-  State<ActivityScreen> createState() => _ActivityScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => ActivityProvider(),
+      child: const _ActivityScreenContent(),
+    );
+  }
 }
 
-class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProviderStateMixin {
+class _ActivityScreenContent extends StatefulWidget {
+  const _ActivityScreenContent({Key? key}) : super(key: key);
+
+  @override
+  State<_ActivityScreenContent> createState() => _ActivityScreenContentState();
+}
+
+class _ActivityScreenContentState extends State<_ActivityScreenContent> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _selectedIndex = 1; // Index untuk BottomNavigationBar, sesuaikan jika Activity bukan index ke-1
-  final ActivityApiService _apiService = ActivityApiService();
-  Future<List<SalesReport>>? _salesReportFuture;
-  DateTime _selectedDate = DateTime.now(); // Default ke hari ini
+  int _bottomNavSelectedIndex = 1; // Asumsikan Activity adalah index ke-1 untuk BottomNav
 
-  // GANTI INI: Anda harus mendapatkan id_user secara dinamis, misalnya dari shared preferences atau state management
-  final String _idUser = "5";
-
-  // Data dummy untuk tab Attendance, Anda bisa menggantinya dengan data asli
-  final List<Map<String, String>> _dummyVisits = List.generate(
-    4,
-    (index) => {
-      'store': 'TK ${index % 2 == 0 ? "SRI BUANA" : "MAJU JAYA"}',
-      'date': '2024-02-${20 + index}',
-      'checkIn': '10:1${index}:00',
-      'checkOut': '11:2${index}:00',
-      'duration': '01:10:00',
-      'timestamp': '${20 + index} Feb, 10:1${index}'
-    },
-  );
+  // Urutan tab yang akan ditampilkan. Sesuaikan jika perlu.
+  final List<String> _tabNames = [
+    'Attendance',    // Index 0
+    'SPO',           // Index 1
+    'POSM',    // Index 2 (Ini akan menampilkan POSM)
+    'Availability',  // Index 3
+    'OOS',           // Index 4
+    'Price Monitoring',     // Index 5
+    'Activation',    // Index 6
+    'Planogram',     // Index 7
+    'Sampling Konsumen',      // Index 8 (Sampling Konsumen)
+    'Survey',        // Index 9
+    'Open Endind',
+    'Competitor'      // Index 10
+  ];
 
   @override
   void initState() {
     super.initState();
-    // Sesuaikan jumlah tab dengan UI (Attendance, SPO, Competitor, Availability, Open End)
-    _tabController = TabController(length: 5, vsync: this);
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) {
-        // Bisa digunakan untuk logic tambahan saat tab berganti
-        setState(() {}); // Memastikan UI di-rebuild untuk indikator tab
-      }
-      // Muat data hanya ketika tab SPO dipilih
-      if (_tabController.index == 1) { // Index 1 adalah tab SPO
-        _loadSalesData();
+    _tabController = TabController(length: _tabNames.length, vsync: this);
+    final provider = Provider.of<ActivityProvider>(context, listen: false);
+
+    // Pemuatan data awal untuk tab pertama (Attendance)
+    // dipanggil setelah frame pertama selesai dibangun untuk menghindari error '!_dirty'.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadDataForCurrentTab(provider, _tabController.index, forceLoad: true);
       }
     });
-    // Muat data SPO jika tab SPO adalah tab awal (misalnya, jika _tabController.initialIndex = 1)
-    // atau jika Anda ingin memuatnya secara default saat layar dibuka
-    if (_tabController.index == 1) {
-        _loadSalesData();
-    }
+
+    _tabController.addListener(() {
+      if (mounted) {
+        if (_tabController.indexIsChanging) {
+          setState(() {}); // Untuk update indikator tab jika ada styling khusus
+        }
+        // Selalu load data saat tab diklik (forceLoad: true)
+        _loadDataForCurrentTab(provider, _tabController.index, forceLoad: true);
+      }
+    });
   }
 
-  void _loadSalesData() {
-    String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    setState(() {
-      _salesReportFuture = _apiService.fetchSalesData(formattedDate, _idUser);
-    });
+  void _loadDataForCurrentTab(ActivityProvider provider, int tabIndex, {bool forceLoad = false}) {
+    // Cek apakah perlu memuat: state masih initial ATAU dipaksa refresh (forceLoad = true)
+    // Ini membantu menghindari pemanggilan API berulang jika data sudah ada dan tidak ada paksaan refresh.
+    // Untuk pemanggilan dari tab listener, forceLoad = true akan selalu memuat ulang.
+    // Untuk pemanggilan awal dari initState (via addPostFrameCallback), forceLoad = true juga memastikan data dimuat.
+
+    switch (tabIndex) {
+      case 0: // Attendance
+        if (provider.attendanceDataState == DataState.initial || forceLoad) {
+          provider.loadAttendanceReportData(forceRefresh: forceLoad);
+        }
+        break;
+      case 1: // SPO
+        if (provider.spoDataState == DataState.initial || forceLoad) {
+          provider.loadSalesData(forceRefresh: forceLoad);
+        }
+        break;
+      case 2: // Competitor (POSM)
+        if (provider.posmDataState == DataState.initial || forceLoad) {
+          provider.loadPosmReportData(forceRefresh: forceLoad);
+        }
+        break;
+      case 3: // Availability
+        if (provider.availabilityDataState == DataState.initial || forceLoad) {
+          provider.loadStockReportData(forceRefresh: forceLoad);
+        }
+        break;
+      case 4: // OOS
+        if (provider.oosDataState == DataState.initial || forceLoad) {
+          provider.loadOosReportData(forceRefresh: forceLoad);
+        }
+        break;
+      case 5: // Price Monitoring
+        if (provider.priceMonitoringDataState == DataState.initial || forceLoad) {
+          provider.loadPriceMonitoringReportData(forceRefresh: forceLoad);
+        }
+        break;
+      case 6: // Activation
+        if (provider.activationDataState == DataState.initial || forceLoad) {
+          provider.loadActivationReportData(forceRefresh: forceLoad);
+        }
+        break;
+      case 7: // Planogram
+        if (provider.planogramDataState == DataState.initial || forceLoad) {
+          provider.loadPlanogramReportData(forceRefresh: forceLoad);
+        }
+        break;
+      case 8: // Sampling Konsumen
+        if (provider.samplingKonsumenDataState == DataState.initial || forceLoad) {
+          provider.loadSamplingKonsumenReportData(forceRefresh: forceLoad);
+        }
+        break;
+      case 9: // Survey
+        if (provider.surveyDataState == DataState.initial || forceLoad) {
+          provider.loadSurveyReportData(forceRefresh: forceLoad);
+        }
+        break;
+      case 10: // Open Ending
+        if (provider.openEndingDataState == DataState.initial || forceLoad) {
+          provider.loadOpenEndingReportData(forceRefresh: forceLoad);
+        }
+        break;
+      case 11: // Open Ending
+        if (provider.openEndingDataState == DataState.initial || forceLoad) {
+          provider.loadCompetitorReportData(forceRefresh: forceLoad);
+        }
+        break;
+      default:
+        // Tab tidak dikenal
+        break;
+    }
   }
 
   @override
@@ -74,49 +162,19 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101), // Bisa disesuaikan
-      builder: (BuildContext context, Widget? child) { // Styling DatePicker (opsional)
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.blue, // Warna header
-              onPrimary: Colors.white, // Warna teks di header
-              onSurface: Colors.black, // Warna teks tanggal
-            ),
-            dialogBackgroundColor:Colors.white,
-          ),
-          child: child!,
-        );
-      }
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        // Muat ulang data hanya jika tab SPO aktif
-        if (_tabController.index == 1) {
-          _loadSalesData();
-        }
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Mendapatkan instance provider untuk digunakan dalam date picker callback jika perlu
+    // Namun, karena DateSelectorWidget ada di dalam setiap TabView yang merupakan Consumer,
+    // lebih baik DateSelectorWidget mendapatkan provider-nya sendiri.
+    // final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+
     return Scaffold(
-      backgroundColor: Colors.grey[200], // Latar belakang umum seperti UI
+      backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        backgroundColor: Colors.white, // Sesuai UI
-        elevation: 1, // Sedikit shadow
+        backgroundColor: Colors.white,
+        elevation: 1,
         title: const Text('Activity History', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -124,33 +182,31 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
           unselectedLabelColor: Colors.blue[700],
           indicator: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            color: Colors.blue[700], // Warna indikator tab aktif
+            color: Colors.blue[700],
           ),
-          tabs: [ // Menggunakan Padding untuk membuat tab terlihat seperti tombol
-            _buildTab('Attandence'),
-            _buildTab('SPO'),
-            _buildTab('Competitor'),
-            _buildTab('Availability'),
-            _buildTab('Open End'),
-          ],
+          tabs: _tabNames.map((name) => _buildTab(name)).toList(),
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildAttendanceTab(_dummyVisits),
-          _buildSPOTab(),
-          _buildCompetitorTab(),
-          _buildPlaceholderTab('Availability'), // Placeholder
-          _buildPlaceholderTab('Open End'),   // Placeholder
+        children: const [ // Pastikan semua view adalah const jika tidak ada parameter dinamis
+          AttendanceTabView(),
+          SpoTabView(),
+          PosmTabView(), // Ini adalah view untuk "Competitor"
+          AvailabilityTabView(),
+          OosTabView(),
+          PriceMonitoringTabView(),
+          ActivationTabView(),
+          PlanogramTabView(),
+          SamplingKonsumenTabView(),
+          SurveyTabView(),
+          OpenEndingTabView(),
+          CompetitorTabView(),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (BuildContext context) => const CheckinMapScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => const CheckinMapScreen()));
         },
         backgroundColor: Colors.green,
         child: const Icon(Icons.location_on, color: Colors.white, size: 30),
@@ -158,357 +214,37 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: CustomBottomNavbar(
-        currentIndex: _selectedIndex,
+        currentIndex: _bottomNavSelectedIndex,
         onTabSelected: (i) {
-            // Panggil handler dari BottomMenu, dan juga update _selectedIndex jika perlu untuk UI di sini
-            BottomMenu.onItemTapped(context, i);
-            // setState(() { _selectedIndex = i; }); // Jika CustomBottomNavbar tidak menangani state highlight sendiri
+          BottomMenu.onItemTapped(context, i);
+          // Jika BottomMenu.onItemTapped tidak menangani update _bottomNavSelectedIndex:
+          // setState(() {
+          //   _bottomNavSelectedIndex = i;
+          // });
         },
         onCheckInPressed: () {
-          // Aksi yang sama dengan FAB utama, jika diperlukan
-           Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (BuildContext context) => const CheckinMapScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => const CheckinMapScreen()));
         },
       ),
     );
   }
 
   Widget _buildTab(String text) {
+    // Sesuaikan padding dan fontSize agar semua nama tab muat
+    double fontSize = 11;
+    EdgeInsetsGeometry padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 8); // Default padding
+
+    if (_tabNames.length > 7) { // Jika tab banyak, perkecil sedikit
+        fontSize = 10.5;
+        padding = const EdgeInsets.symmetric(horizontal: 6, vertical: 8);
+    }
+
+
     return Tab(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          // Warna latar belakang diatur oleh TabBar indicator dan unselectedLabelColor
-        ),
-        child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
-      ),
-    );
-  }
-
-  Widget _buildAttendanceTab(List<Map<String, String>> visits) {
-    // Implementasi tab Attendance yang sudah ada atau yang baru
-    return Padding(
-      padding: const EdgeInsets.all(12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Search Bar
-          TextField(
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search, color: Colors.grey),
-              hintText: 'Search here',
-              hintStyle: TextStyle(color: Colors.grey[600]),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Status Cards (jika masih relevan dengan desain final Attendance)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              StatusCardWidget(
-                title: "Plan",
-                count: 20,
-                color: Colors.yellow[700]!,
-                textColor: Colors.black,
-              ),
-              StatusCardWidget(
-                title: "Dikunjungi",
-                count: 10,
-                color: Colors.green,
-                textColor: Colors.white,
-              ),
-              StatusCardWidget(
-                title: "Tidak Dikunjungi",
-                count: 10,
-                color: Colors.red,
-                textColor: Colors.white,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Daftar Kunjungan
-          Expanded(
-            child: ListView.builder(
-              itemCount: visits.length,
-              itemBuilder: (context, index) {
-                final visit = visits[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  color: Colors.white,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blue[100],
-                      child: const Icon(Icons.store, color: Colors.blue),
-                    ),
-                    title: Text(visit['store']!, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Tanggal: ${visit['date']}'),
-                        Text('Check in: ${visit['checkIn']}'),
-                        Text('Check out: ${visit['checkOut']}'),
-                        Text('Durasi: ${visit['duration']}'),
-                      ],
-                    ),
-                    trailing: Text(visit['timestamp']!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  ),
-                );
-              },
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSPOTab() {
-    String formattedDateForDisplay = DateFormat('dd MMMM yyyy', 'id_ID').format(_selectedDate); // Format Indonesia
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0), // Mengurangi padding bawah
-      child: Column(
-        children: [
-          // Baris untuk memilih tanggal
-          Material( // Bungkus dengan Material untuk efek InkWell yang benar
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: () => _selectDate(context),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today, color: Colors.blue, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        formattedDateForDisplay, // Menampilkan tanggal yang dipilih
-                        style: const TextStyle(fontSize: 15, color: Colors.black87),
-                      ),
-                    ),
-                    const Icon(Icons.search, color: Colors.blue, size: 24),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: FutureBuilder<List<SalesReport>>(
-              future: _salesReportFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  // Tambahkan tombol Retry
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Error: ${snapshot.error}', textAlign: TextAlign.center),
-                        const SizedBox(height: 10),
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.refresh),
-                          label: const Text("Coba Lagi"),
-                          onPressed: _loadSalesData,
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                        )
-                      ],
-                    ),
-                  );
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('Tidak ada data SPO untuk tanggal ini.', style: TextStyle(fontSize: 16)));
-                }
-
-                List<SalesReport> reports = snapshot.data!;
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 70), // Padding untuk FAB
-                  itemCount: reports.length,
-                  itemBuilder: (context, index) {
-                    final report = reports[index];
-                    // Format tanggal dari API (misal "14 May 2025") ke format UI (misal "03 March 2024")
-                    // Jika API sudah memberikan format "dd MMMM yyyy", maka tidak perlu parsing ulang
-                    String displayTransactionDate = report.transactionDate;
-                    try {
-                      // Coba parse jika formatnya diketahui (misal "dd MMMM yyyy" dari API)
-                      // dan format ulang jika perlu. Untuk contoh ini, kita asumsikan API sudah benar.
-                       DateTime parsedDate = DateFormat("d MMMM yyyy", "en_US").parse(report.transactionDate);
-                       displayTransactionDate = DateFormat("dd MMMM yyyy", "id_ID").format(parsedDate);
-                    } catch (e) {
-                      // Jika gagal parse, tampilkan apa adanya
-                      print("Error parsing transaction date: ${report.transactionDate} - $e");
-                    }
-
-
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      color: Colors.white,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[600], // Warna biru header kartu
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(10),
-                                topRight: Radius.circular(10),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.storefront_outlined, color: Colors.white, size: 22),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    report.outletName,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                             padding: const EdgeInsets.only(left: 16.0, top: 6, bottom: 8),
-                             child: Text(
-                               displayTransactionDate, // Tanggal transaksi di bawah nama outlet
-                               style: TextStyle(
-                                 fontSize: 13,
-                                 color: Colors.grey[700],
-                                 fontWeight: FontWeight.w500
-                               ),
-                             ),
-                           ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
-                            child: Table(
-                              columnWidths: const {
-                                0: FlexColumnWidth(2.5), // Product
-                                1: FlexColumnWidth(1.2), // Quantity (agar center)
-                                2: FlexColumnWidth(1.5), // Value (agar right)
-                              },
-                              children: [
-                                TableRow(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                      child: Text('Product', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[800], fontSize: 13)),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                      child: Text('Quantity', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[800], fontSize: 13)),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                      child: Text('Value', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[800], fontSize: 13)),
-                                    ),
-                                  ],
-                                ),
-                                TableRow( // Garis pemisah
-                                  children: [
-                                    Divider(color: Colors.grey[300], height: 1, thickness: 1),
-                                    Divider(color: Colors.grey[300], height: 1, thickness: 1),
-                                    Divider(color: Colors.grey[300], height: 1, thickness: 1),
-                                  ]
-                                ),
-                                for (var product in report.products)
-                                  TableRow(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 7.0),
-                                        child: Text(product.productName, style: const TextStyle(color: Colors.black87, fontSize: 13)),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 7.0),
-                                        child: Text(product.quantity.toString(), textAlign: TextAlign.center, style: const TextStyle(color: Colors.black87, fontSize: 13)),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 7.0),
-                                        child: Text(
-                                          NumberFormat("#,##0", "id_ID").format(product.value),
-                                          textAlign: TextAlign.right,
-                                          style: const TextStyle(color: Colors.black87, fontSize: 13)
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 12.0),
-                            child: Row(
-                              children: [
-                                Text(
-                                  'Motorist: ',
-                                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                                ),
-                                Expanded( // Agar nama motorist bisa panjang
-                                  child: Text(
-                                    report.motoristName,
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompetitorTab() {
-    return _buildPlaceholderTab("Competitor");
-  }
-
-  Widget _buildPlaceholderTab(String tabName) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.construction, size: 50, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            '$tabName Data Akan Ditampilkan Disini',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        padding: padding,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+        child: Text(text, style: TextStyle(fontWeight: FontWeight.w600, fontSize: fontSize)),
       ),
     );
   }
